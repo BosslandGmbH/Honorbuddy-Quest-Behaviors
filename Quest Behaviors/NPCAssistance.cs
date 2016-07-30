@@ -17,7 +17,7 @@
 // ##Syntax##
 // QuestId: Id of the quest.
 // X,Y,Z: Where you wish to move.
-// 
+//
 #endregion
 
 
@@ -70,7 +70,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.     
+                // ...and also used for IsDone processing.
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -96,6 +96,8 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
@@ -116,10 +118,6 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<WoWGuid> _npcBlacklist = new List<WoWGuid>();
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         private WoWUnit CurrentNPC
         {

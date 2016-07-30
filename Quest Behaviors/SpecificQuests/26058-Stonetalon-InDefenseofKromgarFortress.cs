@@ -59,6 +59,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         private VehicleWeapon WeaponFireCannon { get; set; }
 
         private LocalPlayer Me

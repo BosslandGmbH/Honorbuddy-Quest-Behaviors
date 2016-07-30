@@ -15,7 +15,7 @@
 #region Summary and Documentation
 // QUICK DOX:
 //      Moves the toon to a desired location in the game world.
-//      NOTE: This behavior is deprecated--use the built-in <RunTo> element instead.    
+//      NOTE: This behavior is deprecated--use the built-in <RunTo> element instead.
 //
 //  Parameters (required, then optional--both listed alphabetically):
 //      X, Y, Z:  World coordinates to which the toon should move.
@@ -109,21 +109,13 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
-        }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
-        {
-            get { return ("$Id$"); }
-        }
-
-        public override string SubversionRevision
-        {
-            get { return ("$Revision$"); }
         }
 
         protected Composite CreateBehavior_CombatMain()
@@ -153,7 +145,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 
 
         // Note: In some areas the toon can be underwater and IsSwimming reports false. This is only known to happen
-        // when character is on some ocean floors and IsSwimming will correctly report 'true' once toon gets off the ocean floor 
+        // when character is on some ocean floors and IsSwimming will correctly report 'true' once toon gets off the ocean floor
         private bool IsUnderWater
         {
             get

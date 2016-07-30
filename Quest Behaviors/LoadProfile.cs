@@ -13,14 +13,14 @@
 // <summary>
 // Loads a profile that is on the Local file system or on the Buddy Store.
 // ##Syntax##
-// ProfileName: 
+// ProfileName:
 //     The name of the profile with or without the ".xml" extension.
 //	   If profile is not in same directory as current profile then this needs to be a relative path to profile
 //	   unless it's a store profile, then an absolute path to store profile can be used.
-// RememberProfile [optional; Default: False] 
+// RememberProfile [optional; Default: False]
 //     Set this to True if Honorbuddy should remember and load the profile the next time it's started. Default (False)
 // </summary>
-// 
+//
 #endregion
 
 
@@ -78,6 +78,9 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Attributes provided by caller
         public String ProfileName { get; private set; }
         public bool RememberProfile { get; private set; }
@@ -89,10 +92,6 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
         // Private properties
         private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
         private String NewProfilePath { get; set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         #region Overrides of CustomForcedBehavior
@@ -158,7 +157,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
                 this.UpdateGoalText(0);
 
                 // Support for store profiles.
-                // Absolute path to a store profile. 
+                // Absolute path to a store profile.
                 if (IsStoreProfile(ProfileName))
                 {
                     NewProfilePath = Slashify(ProfileName);

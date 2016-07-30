@@ -71,6 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public uint[] MobIds { get; private set; }

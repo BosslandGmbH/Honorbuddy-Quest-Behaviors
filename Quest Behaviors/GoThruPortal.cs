@@ -24,7 +24,7 @@
 // Portal entry failures are most often caused by hiccups in the destination WoWserver
 // instance.  The number of times, and the delay between attempts is adjustable
 // with tunable parameters.
-// 
+//
 // BEHAVIOR ATTRIBUTES:
 // *** ALSO see the documentation in QuestBehaviorBase.cs.  All of the attributes it provides
 // *** are available here, also.  The documentation on the attributes QuestBehaviorBase provides
@@ -63,7 +63,7 @@
 // on way through portal.
 //     <MoveTo X="4646.201" Y="-3685.043" Z="954.2496" />
 //     <CustomBehavior File="GoThruPortal" X="4656.928" Y="-3685.472" Z="957.185" />
-// 
+//
 #endregion
 
 
@@ -145,7 +145,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -165,7 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
         #endregion
 
@@ -199,9 +199,8 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         public override void OnFinished()
@@ -399,7 +398,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 
                     var distPerSecond = distToPrevLoc / secondsSinceLastPulse;
                     // The fastest travel speed is about 34.44 with highest riding skill level and guild bonuses.
-                    // Check if player moved further then the speed would have allowed him/her to travel, indicating that player 
+                    // Check if player moved further then the speed would have allowed him/her to travel, indicating that player
                     // was ported.
                     var result = distPerSecond * 1.5 > LastForwardSpeed;
                     PulseTimer.Reset();

@@ -102,9 +102,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public float Priority { get; private set; }
 
         #region Concrete class required implementations...
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string GitId => "$Id$";
 
         public override XElement ToXml(string elementName = null)
         {
@@ -124,7 +123,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #endregion
 
         // These DelayCompiledExpression are only needed when an instance of this type is constructed from an XElement,
-        // when the ConvertWhen/PursueWhen expressions are not known at compile time. 
+        // when the ConvertWhen/PursueWhen expressions are not known at compile time.
         [CompileExpression]
         public DelayCompiledExpression ConvertWhenDelayCompiledExpression { get; protected set; }
 
@@ -192,9 +191,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
         #region Concrete class required implementations...
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string GitId => "$Id$";
 
         public override bool ShouldPursue(WoWObject obj)
         {

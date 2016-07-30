@@ -84,7 +84,7 @@
 //
 // THINGS TO KNOW:
 // * The vehicle may provide an action bar with spells on it.
-//      The SpellId is the Id of the spell (as you would look it up on WoWHead). 
+//      The SpellId is the Id of the spell (as you would look it up on WoWHead).
 //      The SpellId is _not_ the ActionBarIndex value (1-12).
 // * An X/Y/Z must always be provided, even if the destination is an NPC (i.e. MobId).
 //      We cannot "see" mobs if they are located too far away.  If the destination
@@ -147,7 +147,7 @@
 //
 //      <CustomBehavior File="Vehicles\VehicleMover" VehicleId="28605" VehicleId2="28606" VehicleId3="28607"
 //          MobId="28653" SpellId="52264" X="2347.104" Y="-5695.789" Z="155.9568" />
-// 
+//
 #endregion
 
 
@@ -270,9 +270,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.

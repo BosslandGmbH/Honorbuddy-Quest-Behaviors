@@ -113,6 +113,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         private WoWPoint BattlefieldCenterPoint { get; set; }
@@ -137,10 +140,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

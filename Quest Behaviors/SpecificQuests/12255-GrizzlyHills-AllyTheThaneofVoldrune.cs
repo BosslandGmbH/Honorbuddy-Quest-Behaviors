@@ -10,7 +10,7 @@
 //
 
 #region Summary and Documentation
-// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255) 
+// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255)
 // Code was taken from Shak
 #endregion
 
@@ -54,6 +54,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
             QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
             QuestRequirementInLog = QuestInLogRequirement.InLog;
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         public WoWPoint Location { get; private set; }

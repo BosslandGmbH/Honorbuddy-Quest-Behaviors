@@ -1,5 +1,5 @@
 //
-// LICENSE: 
+// LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
@@ -51,6 +51,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
             var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
             _catapult = new VehicleWeapon(1, weaponArticulation, WeaponMuzzleVelocity, WeaponProjectileGravity);
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         private int QuestId { get; set; }
 

@@ -75,11 +75,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         #region Overrides of QuestBehaviorBase
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -99,7 +102,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         public override void OnStart()

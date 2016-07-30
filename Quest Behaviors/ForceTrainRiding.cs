@@ -77,6 +77,9 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int MobId { get; private set; }
@@ -100,10 +103,6 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
             }
         }
         private NpcResult RidingTrainer { get { return (Styx.CommonBot.ObjectDatabase.Query.GetNpcById((uint)MobId)); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior.
 

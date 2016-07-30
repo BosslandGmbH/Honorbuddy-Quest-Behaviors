@@ -8,7 +8,7 @@
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
-//   
+//
 
 #region Summary and Documentation
 // QUICK DOX:
@@ -33,7 +33,7 @@
 //
 // Tunables:
 //      BaitId [optional;  Default: none]
-//          Specifies the bait item id. If not specified then any bait in bags is used. 
+//          Specifies the bait item id. If not specified then any bait in bags is used.
 //      CollectItemCount [optional;  Default: 1]
 //          Specifies the number of items that must be collected.
 //          The behavior terminates when we have this number of CollectItemId
@@ -54,7 +54,7 @@
 //          Specifies the QuestId, if the item is the only thing to complete this quest.
 //      UseFishingGear [optional; Default: false]
 //          Equips fishing poles and hats using highest stats
-//      
+//
 //
 // THINGS TO KNOW:
 // * The original documenation can be found here:
@@ -72,7 +72,7 @@
 //
 //                   <!-- may/may not be optional  -->
 //                    CollectItemCount="6"
-//                    QuestId="14069"  
+//                    QuestId="14069"
 //                    MoveToPool="true"
 //                    MaxCastRange="20"
 //                    MinCastRange="15"
@@ -152,6 +152,9 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
 
         // Attributes provided by caller
         private PerFrameCachedValue<int> CollectItemCount { get; set; }
@@ -230,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -250,7 +253,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         public override void OnFinished()
@@ -263,7 +266,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 if (Fishing.IsFishing)
                     SpellManager.StopCasting();
 
-                // Make sure our weapons are equipped when done. 
+                // Make sure our weapons are equipped when done.
                 EquipWeapons();
                 _root = null;
             }
@@ -306,7 +309,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                 if (UseFishingGear)
                 {
-                    // Ensure that Autoequip doesn't interfere when we equip fishing gear. 
+                    // Ensure that Autoequip doesn't interfere when we equip fishing gear.
                     CharacterSettings.Instance.AutoEquip = false;
 
                     bool using2Hand;
@@ -1088,7 +1091,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                 new Action(ret => WoWMovement.MoveStop()),
                                 new PrioritySelector(
 
-                                    // Pool ist Feuerteich 
+                                    // Pool ist Feuerteich
                                     new Decorator(ret => Pool.Entry == 207734,
                                         new Sequence(
                                         new Action(ret => saveLocation.Add(getSaveLocation(Pool.Location, MinCastRange,
@@ -1096,7 +1099,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         new Action(ret => QBCLog.DeveloperInfo("Added {0} to saveLocations.", saveLocation[0]))
                                     )),
 
-                                    // Pool ist kein Feuerteich 
+                                    // Pool ist kein Feuerteich
                                     new Decorator(ret => Pool.Entry != 207734,
                                         new Sequence(
                                         new Action(ret => saveLocation.Add(getSaveLocation(Pool.Location, MinCastRange,

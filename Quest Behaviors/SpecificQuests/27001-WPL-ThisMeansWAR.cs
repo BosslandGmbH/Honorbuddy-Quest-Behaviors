@@ -11,7 +11,7 @@
 //
 
 #region Summary and Documentation
-// This behavior is tailored for the quest http://www.wowhead.com/quest=27789/troggish-troubles 
+// This behavior is tailored for the quest http://www.wowhead.com/quest=27789/troggish-troubles
 #endregion
 
 
@@ -57,6 +57,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
         {
             QBCLog.BehaviorLoggingContext = this;
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         private LocalPlayer Me { get { return (StyxWoW.Me); } }

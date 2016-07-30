@@ -64,13 +64,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         public int MobIdPomfruit = 58767;
         public int PomharvestFireworkId = 79344;
         private Composite _root;
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -90,7 +94,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         public List<WoWUnit> Pomfruit

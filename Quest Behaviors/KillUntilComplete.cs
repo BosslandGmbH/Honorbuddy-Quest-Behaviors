@@ -49,7 +49,7 @@
 //          you should prefer using the <HuntingGrounds> sub-element, as it allows for
 //          multiple locations (waypoints) to visit.
 //          This value is automatically converted to a <HuntingGrounds> waypoint.
-// 
+//
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
 //      <AvoidMobs> [optional; Default: none]
@@ -183,9 +183,8 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
         // Private properties
         private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         #region Overrides of QuestBehaviorBase
 
@@ -229,7 +228,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             if (ownedBy != null && ownedBy.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable)
                 return true;
 
-            // Unique case where during the quest 'Darkness Falls' a mob spawns that channels a spell 
+            // Unique case where during the quest 'Darkness Falls' a mob spawns that channels a spell
             // onto main quest mob making it immune to damage but the spawn is not in threat table
             var channelObj = wowUnit.ChannelObject as WoWUnit;
             return channelObj != null && channelObj.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable;

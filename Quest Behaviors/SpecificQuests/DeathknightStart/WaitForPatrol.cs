@@ -130,13 +130,13 @@
 //      </CustomBehavior>
 //
 // "Grand Theft Palomino" (http://www.wowhead.com/quest=12680)
-// This is one of the Death Knight 'starter' quests.  To complete, we must wait for 
+// This is one of the Death Knight 'starter' quests.  To complete, we must wait for
 // Stable Master Kitrik (http://wowhead.com/npc=28683) to be at a safe distance, before we
 // walk in and steal the horse.
 //
 //      <CustomBehavior File="WaitForPatrol" AvoidMobId="28683" AvoidDistance="85"
 //          X="2175.955" Y="-5769.175" Z="101.3312" />
-// 
+//
 #endregion
 
 
@@ -268,9 +268,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.

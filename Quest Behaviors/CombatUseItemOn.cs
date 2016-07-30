@@ -123,6 +123,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
 
         private List<Tuple<string, string>> BuildReplacementArguments()
@@ -189,10 +192,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                                      .OrderBy(u => u.Distance).FirstOrDefault());
             }
         }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         private WoWGuid _lastMobGuid;
         private Composite RootCompositeOverride()

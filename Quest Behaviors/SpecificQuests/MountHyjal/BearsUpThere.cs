@@ -10,18 +10,18 @@
 //
 
 #region Summary and Documentation
-// BearsUpThere by Bobby53 
-// 
+// BearsUpThere by Bobby53
+//
 // Completes the vehicle quest http://www.wowhead.com/quest=25462
-// 
+//
 // To use, you must use the Ladder at <RunTo  X="5254.562" Y="-1536.917" Z="1361.341" />
 // Due to how the coordinate system is relative to the vehicle once you enter, it
-// is setup to only support this specific ladder.  
-// 
+// is setup to only support this specific ladder.
+//
 // ##Syntax##
 // QuestId: Id of the quest (default is 0)
 // [Optional] QuestName: optional quest name (documentation only)
-// 
+//
 #endregion
 
 
@@ -103,9 +103,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
         // Private properties
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
@@ -424,7 +423,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                 //  ..  aim direction (left/right)
                 if (NeedAimDirection && await AimDirection())
                     return true;
-                //  ..  throw                           
+                //  ..  throw
                 await ChuckBear();
                 return true;
             }
@@ -460,7 +459,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -480,7 +479,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         public override void OnStart()

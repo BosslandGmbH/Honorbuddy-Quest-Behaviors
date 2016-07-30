@@ -44,6 +44,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WarchiefsRevenge
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         public static LocalPlayer me = StyxWoW.Me;
 

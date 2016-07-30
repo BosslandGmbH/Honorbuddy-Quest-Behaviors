@@ -13,35 +13,35 @@
 // DOCUMENTATION:
 // Moves to along a path in a vehicle using the specific actionbar butons until quest is complete
 // ##Syntax##
-//		VehicleId 
+//		VehicleId
 //			ID of the vehicle
 //		Buttons
-//			A series of numbers that represent the buttons to press in order of importance, 
-//			separated by comma, for example Buttons ="2,1"     
+//			A series of numbers that represent the buttons to press in order of importance,
+//			separated by comma, for example Buttons ="2,1"
 //		NpcList
 //			A comma separated list of Npcs IDs to kill for this quest. example: NpcList ="2323,4231,4324"
-//		ItemId [optional; Default 0] 
+//		ItemId [optional; Default 0]
 //			Id of item that summons Vehicle
-//		HealButton [optional; Default 0] 
+//		HealButton [optional; Default 0]
 //			the button number that's used to heal: 1-20
-//		HealPercent [optional; Default 35] 
+//		HealPercent [optional; Default 35]
 //			The HealButton ability is used when vehicle's health drops below this threshold
 //		Path
 //			The Path to follow while completing the quests objectives, This Path should loop..
 //			format is x,y,z|x,y,z. example: Path = "2331.773,-5752.029,153.9199 | 2310.267,-5742.212,161.2074"
 //		EndX/EndY/EndZ [alias: DropOffX/DropOffY/DropOffZ]
-//			The location to move to when quest completes or drop off point for rescued NPCs.  
+//			The location to move to when quest completes or drop off point for rescued NPCs.
 //			This is usually by the quest turnin NPC
-//		PickUpPassengerButton [optional; Default 0; Range(1,10)] 
+//		PickUpPassengerButton [optional; Default 0; Range(1,10)]
 //			Button used to pickup NPCs durring search and rescue operations
-//		DropPassengerButton: [optional; Default 0; Range(1,10)]  
+//		DropPassengerButton: [optional; Default 0; Range(1,10)]
 //			Button used to drop NPCs durring search and rescue operations
-//		SpeedButton: [optional; Default 0; Range(1,10)]  
+//		SpeedButton: [optional; Default 0; Range(1,10)]
 //			Button presses a speed boost ability if specified
-//		NpcScanRange: [optional; Default 10000.0] 
+//		NpcScanRange: [optional; Default 10000.0]
 //			Maximum range from player to scan for NPCs
-//		Precision: [optional; Default 4.0] 
-//			This behavior moves on to the next waypoint when less than this distance to current waypoint.    
+//		Precision: [optional; Default 4.0]
+//			This behavior moves on to the next waypoint when less than this distance to current waypoint.
 //
 #endregion
 
@@ -180,9 +180,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         private Composite _root;
         private double PrecisionSqr { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         #endregion
 
@@ -234,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             var target = FindTarget(vehicleLoc);
             // are we done with the quest or will the vehicle automatically despawn soon?
             var exitVehicle = Quest.IsCompleted || _flightTimer.IsFinished;
-            // check if there's a passenger 
+            // check if there's a passenger
             var dropOffPassenger = DropPassengerButton != 0 && target != null && UnitIsRidingMyVehicle(target);
 
             if (exitVehicle || dropOffPassenger)
@@ -288,7 +287,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                     return;
                 }
 
-                // return when a button is used. 
+                // return when a button is used.
                 foreach (var button in Buttons)
                 {
                     if (UseVehicleButton(button))

@@ -68,6 +68,9 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
 
         private WoWItem Spear()

@@ -189,7 +189,7 @@
 //              <Hotspot X="3821.244" Y="509.5078" Z="639.8226" />
 //          </Safespots>
 //      </CustomBehavior>
-// 
+//
 #endregion
 
 
@@ -348,6 +348,9 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         private int[] StartEventGossipOptions { get; set; }
@@ -372,9 +375,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         // Tunables
         private MovementByType MovementBy { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

@@ -186,9 +186,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
 
         #region Overrides of QuestBehaviorBase
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         protected override ConfigMemento CreateConfigMemento()
@@ -265,7 +264,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     appliedChangesBuilder.Append(Environment.NewLine);
                 }
 
-                // Third, show state, if requested...                
+                // Third, show state, if requested...
                 if (DebugShowDetails)
                 {
                     var currentConfiguration = ChangeSet.FromCurrentConfiguration();

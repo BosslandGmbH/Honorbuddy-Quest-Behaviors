@@ -54,7 +54,7 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
         /// Behavior for forcing train/mail/vendor/repair
         /// Example usage: <CustomBehavior QuestId="14324" File="ForceSetVendor" VendorType="Train" />
         /// QuestId is optional, if you don't use it make sure you put this tag inside an 'If'
-        /// </summary> 
+        /// </summary>
         public ForceSetVendor(Dictionary<string, string> args)
             : base(args)
         {
@@ -117,6 +117,9 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public bool DoMail { get; private set; }
@@ -129,10 +132,6 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

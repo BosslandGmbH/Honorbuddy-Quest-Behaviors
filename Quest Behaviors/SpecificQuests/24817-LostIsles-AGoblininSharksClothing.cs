@@ -52,6 +52,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
             QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         public int QuestId { get; set; }
         private bool _isBehaviorDone = false;
         private Composite _root;

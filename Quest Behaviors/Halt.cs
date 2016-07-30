@@ -12,16 +12,16 @@
 #region Summary and Documentation
 // Stops the Quest Bot.  Will write 'Msg' to the log and Goal Text.
 // Also write the line number it halted at for easily locating in profile.
-// 
+//
 // Useful for testing assumptions in quest profile and during profile
 // development to force profile to automatically stop at designated point
-// 
+//
 // ##Syntax##
 // [optional] QuestId: Id of the quest (default is 0)
 // [optional] Msg: text value to display (default says stopped by profile)
 // [optional] Color: color to use for message in log (default is red)
 // [optional] CloseWoW: closes WoW and exits Honorbuddy with an exit code of 12 which signals relogers to stop logging in (default is false)
-// 
+//
 // Note:  QuestId behaves the same as on every other behavior.  If 0, then
 // halt always occurs.  Otherwise, for non-zero QuestId only halts if the
 // character has the quest and its not completed
@@ -86,6 +86,9 @@ namespace Honorbuddy.Quest_Behaviors.Halt
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public Color Color { get; private set; }
@@ -94,10 +97,6 @@ namespace Honorbuddy.Quest_Behaviors.Halt
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

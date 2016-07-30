@@ -23,14 +23,14 @@
 //              to succeed.  The allowed values for this attribute are:
 //                  All:        abandon quest if its in log regardless of status
 //                  Failed:     abandon quest only if failed
-//                  Incomplete: abandon incomplete quests (failed and any not complete)  
+//                  Incomplete: abandon incomplete quests (failed and any not complete)
 //
 //      WaitTime [optional; Default: 1500ms]
 //          Defines the number of milliseconds to wait after the quest abandon before carrying on.
 //          This allows the WoWclient to update its state (and HBcore to 'catch up' to it),
 //          before proceeding with the rest of the profile.
 //
-//  Examples:   
+//  Examples:
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
@@ -97,6 +97,8 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         // Attributes provided by caller
         private int QuestId { get; set; }
@@ -107,10 +109,6 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
         private bool _isBehaviorDone;
         private Composite _root;
         private readonly WaitTimer _waitTimerAfterAbandon = new WaitTimer(TimeSpan.Zero);
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

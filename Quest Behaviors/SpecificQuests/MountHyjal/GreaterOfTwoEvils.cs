@@ -13,14 +13,14 @@
 // Completes the quest http://www.wowhead.com/quest=25310
 // by using the item to enter a vehicle then casting
 // its attack and shield abilities as needed to defeat the target
-// 
+//
 // Note: you must already be within 100 yds of MobId when starting
-// 
+//
 // ##Syntax##
 // QuestId: Id of the quest (default is 0)
 // MobId:  Id of the mob to kill
 // [Optional] QuestName: optional quest name (documentation only)
-// 
+//
 #endregion
 
 
@@ -84,6 +84,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int MobId { get; private set; }
@@ -99,11 +102,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         public void Log(string format, params object[] args)
         {

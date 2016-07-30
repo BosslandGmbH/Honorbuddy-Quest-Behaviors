@@ -152,9 +152,8 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.

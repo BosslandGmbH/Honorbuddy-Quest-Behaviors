@@ -62,6 +62,9 @@ namespace Honorbuddy.Quest_Behaviors.EnablePlugin
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
 
         private string[] _names;

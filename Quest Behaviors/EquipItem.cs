@@ -12,7 +12,7 @@
 #region Summary and Documentation
 // WIKI DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_EquipItem
-//     
+//
 // QUICK DOX:
 //      Equips the specified item into a character equipment slot.  You may specify the slot, or allow it to default.
 //      If an item is already occupying the equipment slot, it will be replaced with the specified item.
@@ -94,6 +94,9 @@ namespace Honorbuddy.Quest_Behaviors.EquipItem
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int ItemId { get; private set; }
@@ -105,10 +108,6 @@ namespace Honorbuddy.Quest_Behaviors.EquipItem
         // Private variables for internal state
         private bool _isBehaviorDone;
         private Composite _root;
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

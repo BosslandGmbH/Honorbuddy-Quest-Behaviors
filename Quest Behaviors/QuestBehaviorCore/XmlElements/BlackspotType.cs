@@ -54,9 +54,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         #region Concrete class required implementations...
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string GitId => "$Id$";
 
         public override XElement ToXml(string elementName = null)
         {
@@ -90,7 +89,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         /// <summary>
         /// <p>Returns 'true', if BLACKSPOT was defined as part of a QBcore-based behavior; otherwise, 'false'.</p>
-        /// 
+        ///
         /// <p>Not all blackspots are created equal.  Please see the comments in Query.IsTargetInBlackspot() for
         /// a better understanding.</p>
         /// </summary>

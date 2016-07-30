@@ -173,6 +173,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         public double CombatMaxEngagementRangeDistance { get; private set; }
@@ -190,9 +193,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         public WoWPoint PositionToMakeLandfall { get; private set; }
 
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

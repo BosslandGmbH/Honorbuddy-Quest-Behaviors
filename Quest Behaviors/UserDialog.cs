@@ -179,9 +179,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _labelStatus = new System.Windows.Forms.Label();
             _heartbeatPulseTimer = new System.Windows.Forms.Timer(_components);
             this.SuspendLayout();
-            // 
+            //
             // textBoxMessage
-            // 
+            //
             _textBoxMessage.BackColor = System.Drawing.SystemColors.ButtonFace;
             _textBoxMessage.Location = new System.Drawing.Point(12, 12);
             _textBoxMessage.Multiline = true;
@@ -189,9 +189,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _textBoxMessage.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             _textBoxMessage.Size = new System.Drawing.Size(404, 134);
             _textBoxMessage.TabIndex = 0;
-            // 
+            //
             // buttonContinueProfile
-            // 
+            //
             _buttonContinueProfile.Location = new System.Drawing.Point(315, 152);
             _buttonContinueProfile.Name = "buttonContinueProfile";
             _buttonContinueProfile.Size = new System.Drawing.Size(101, 23);
@@ -199,9 +199,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _buttonContinueProfile.Text = "Continue Profile";
             _buttonContinueProfile.UseVisualStyleBackColor = true;
             _buttonContinueProfile.Click += new System.EventHandler(this.buttonContinueProfile_Click);
-            // 
+            //
             // buttonStopBot
-            // 
+            //
             _buttonStopBot.Enabled = false;
             _buttonStopBot.Location = new System.Drawing.Point(228, 152);
             _buttonStopBot.Name = "buttonStopBot";
@@ -210,9 +210,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _buttonStopBot.Text = "Stop Bot";
             _buttonStopBot.UseVisualStyleBackColor = true;
             _buttonStopBot.Click += new System.EventHandler(this.buttonStopBot_Click);
-            // 
+            //
             // checkBoxSuppressAudio
-            // 
+            //
             _checkBoxSuppressAudio.AutoSize = true;
             _checkBoxSuppressAudio.Location = new System.Drawing.Point(12, 175);
             _checkBoxSuppressAudio.Name = "checkBoxSuppressAudio";
@@ -220,9 +220,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _checkBoxSuppressAudio.TabIndex = 3;
             _checkBoxSuppressAudio.Text = "Suppress Periodic Audible Warnings";
             _checkBoxSuppressAudio.UseVisualStyleBackColor = true;
-            // 
+            //
             // checkBoxAutoDefend
-            // 
+            //
             _checkBoxAutoDefend.AutoSize = true;
             _checkBoxAutoDefend.Location = new System.Drawing.Point(12, 152);
             _checkBoxAutoDefend.Name = "checkBoxAutoDefend";
@@ -231,9 +231,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _checkBoxAutoDefend.Text = "Auto Defend, if attacked";
             _checkBoxAutoDefend.UseVisualStyleBackColor = true;
             _checkBoxAutoDefend.CheckedChanged += new System.EventHandler(this.checkBoxAutoDefend_CheckedChanged);
-            // 
+            //
             // labelStatus
-            // 
+            //
             _labelStatus.AutoSize = true;
             _labelStatus.Location = new System.Drawing.Point(225, 182);
             _labelStatus.MinimumSize = new System.Drawing.Size(180, 0);
@@ -241,14 +241,14 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             _labelStatus.Size = new System.Drawing.Size(180, 13);
             _labelStatus.TabIndex = 5;
             _labelStatus.TextAlign = System.Drawing.ContentAlignment.BottomRight;
-            // 
+            //
             // heartbeatPulseTimer
-            // 
+            //
             _heartbeatPulseTimer.Interval = 1000;
             _heartbeatPulseTimer.Tick += new System.EventHandler(this.heartbeatPulseTimer_Tick);
-            // 
+            //
             // UserDialogForm
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(428, 204);
@@ -545,6 +545,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Attributes provided by caller
         public string DialogText { get; private set; }
         public string DialogTitle { get; private set; }
@@ -563,11 +566,6 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
         private AsyncCompletionToken _completionToken;
         private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         private void UserDialogExitProcessing(PopdownReason popdownReason)
         {
@@ -934,7 +932,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
     /// Base class for the classic enumeration pattern.  The enumeration pattern allows
     /// behavior (e.g., methods) to be associated with each enumerable item that is
     /// defined.
-    /// 
+    ///
     /// The enumeration pattern has these characteristics:
     /// * This technique is *fast*--no reflection is involved
     /// * Any number of methods can be associatd with each enumerated item
@@ -945,7 +943,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
     ///   are not object-oriented and a major source of maintenance errors.
     ///   As enumerations are added, 'default' cases in switch statements mask
     ///   the omission of their handling.
-    ///   
+    ///
     ///  A good tutorial on this pattern can be found here...
     ///      http://www.codeproject.com/KB/cs/EnhancedEnums.aspx
     /// </summary>

@@ -85,19 +85,12 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 25Apr2013-11:42UTC chinajade
-        private static readonly Regex s_regexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
         private static string BuildVersionedBehaviorName(CustomForcedBehavior cfb)
         {
-            Func<string, string> utilStripSubversionDecorations =
-                (subversionRevision) =>
-                {
-                    return s_regexSvnDecoration.Replace(subversionRevision, "$1").Trim();
-                };
-
             var behaviorName = (cfb != null) ? cfb.GetType().Name : "UnknownBehavior";
-            var versionNumber = (cfb != null) ? utilStripSubversionDecorations(cfb.SubversionRevision) : "0";
+            var versionNumber = (cfb != null) ? cfb.VersionId : "0";
 
-            VersionedBehaviorName = string.Format("{0}-v{1}", behaviorName, versionNumber);
+            VersionedBehaviorName = string.Format("{0}-{1}", behaviorName, versionNumber);
 
             return VersionedBehaviorName;
         }

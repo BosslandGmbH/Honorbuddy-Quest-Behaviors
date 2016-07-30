@@ -11,15 +11,15 @@
 #region Summary and Documentation
 
 // QUICK DOX:
-//		This behavior is designed for NPCs that have an immunity/shield 
+//		This behavior is designed for NPCs that have an immunity/shield
 //		ability that needs to be broken by killing other NPCs nearby
 //
 // BEHAVIOR ATTRIBUTES:
-//      MobIdN [REQUIRED] 
+//      MobIdN [REQUIRED]
 //			Ids of the mobs that have an immunity/shield ability
-//      ImmunityBreakingMobIdN [REQUIRED] 
+//      ImmunityBreakingMobIdN [REQUIRED]
 //          Ids of the mobs that need to be killed close to the mob with immunity/shield in order to break the shield
-//      ImmunityAuraId [REQUIRED] 
+//      ImmunityAuraId [REQUIRED]
 //          The aura id of the shield
 //		MaxRange [Optional; Default: 8]
 //			The maximum range from the shielded mob that the immunity breaking mob need to be killed within
@@ -33,7 +33,7 @@
 #region Examples
 
 // EXAMPLE:
-//     <CustomBehavior File="Misc\BreakImmunityByKillingMobsInCloseProximity" MobId="2120" 
+//     <CustomBehavior File="Misc\BreakImmunityByKillingMobsInCloseProximity" MobId="2120"
 //			ImmunityAuraId="87251" ImmunityBreakingNpcIds="45766" X="-135.444" Y="1071.23" Z="66.07568" />
 
 #endregion
@@ -145,16 +145,8 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 
         private WoWUnit SelectedNpc { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
-        {
-            get { return "$Id$"; }
-        }
-
-        public override string SubversionRevision
-        {
-            get { return "$Rev$"; }
-        }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         #endregion
 
@@ -164,13 +156,13 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
             //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
             //                              + "  Please update profile to use MovementBy, instead.",
-            //  
+            //
         }
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)

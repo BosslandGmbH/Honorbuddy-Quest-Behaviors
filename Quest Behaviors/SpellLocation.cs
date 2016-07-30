@@ -46,7 +46,7 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.            
+                // ...and also used for IsDone processing.
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -67,6 +67,9 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         public WoWPoint Location { get; private set; }
         public int QuestId { get; private set; }

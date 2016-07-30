@@ -15,13 +15,13 @@
 // When you enter a instance you start the timer.
 // When you have done your instance run you check the timer to see how long you have been in the instance.
 // Calculated from that InstanceTimer will create a WaitTimer from that.
-// 
+//
 // To start the timer use :
 // <CustomBehavior File="Misc\InstanceTimer" Timer="Start" />
 //
 // To check how long you have been in instance and create a wait timer use:
 // <CustomBehavior File="Misc\InstanceTimer" Timer="Check" />
-// 
+//
 // The default wait time is 12min 30sec - the time you spent in instance.
 // If you want to alter the wait time use :
 // <CustomBehavior File="Misc\InstanceTimer" Timer="Check" WaitTime="10000" />
@@ -83,6 +83,9 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         // Attributes provided by caller
         private string GoalText { get; set; }
         private int WaitTime { get; set; }
@@ -130,7 +133,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",

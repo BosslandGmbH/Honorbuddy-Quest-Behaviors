@@ -60,7 +60,7 @@
 //      X/Y/Z [Default: Toon's initial position]: Defines the anchor of a search area for
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
-// 
+//
 #endregion
 
 
@@ -71,7 +71,7 @@
 //     <Hotspot Name="The Shady Lady" X="4578.725" Y="-4721.257" Z="882.8724" />
 //     <Hotspot Name="The Blue Recluse" X="4584.166" Y="-4693.487" Z="882.7331" StartPoint="true" />
 // </CustomBehavior>
-// 
+//
 #endregion
 
 
@@ -203,6 +203,9 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int CollectItemCount { get; private set; }
@@ -246,12 +249,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                             .Sum(item => item.StackCount));
             }
         }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
 
         // If player is close to a target that is interesting to us, ignore the target...
         // The player may be going for the same mob, and we don't want to draw attention.
@@ -667,7 +664,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         /// The created behavior was meant to be used in a PrioritySelector.
         /// It may also have uses inside other TreeSharp Composites.
         /// </summary>
-        /// 
+        ///
         /// <returns>
         /// <para>* RunStatus.Failure, if current target is viable.
         /// It will also return Failure if no targets could be located and failIfNoTargets is true</para>
@@ -1085,12 +1082,12 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         /// The created behavior was meant to be used in a PrioritySelector.
         /// It may also have uses inside other TreeSharp Composites.
         /// </summary>
-        /// 
+        ///
         /// <returns>
         /// <para>* RunStatus.Failure, if swim breath is not needed</para>
         /// <para>* RunStatus.Success, if we're catching our breath, or moving for it</para>
         /// </returns>
-        /// 
+        ///
         public Composite CreateBehavior()
         {
             return (_behaviorRoot ?? (_behaviorRoot =
@@ -1275,12 +1272,12 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         /// The created behavior was meant to be used in a PrioritySelector.
         /// It may also have uses inside other TreeSharp Composites.
         /// </summary>
-        /// 
+        ///
         /// <returns>
         /// <para>* RunStatus.Failure, if looting is not needed</para>
         /// <para>* RunStatus.Success, if we're in the process of looting things</para>
         /// </returns>
-        /// 
+        ///
         public Composite CreateBehavior(ForceLootDelegate forceLoot)
         {
             return (_behaviorRoot ?? (_behaviorRoot =

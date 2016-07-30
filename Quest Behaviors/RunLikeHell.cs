@@ -10,22 +10,22 @@
 //
 
 #region Summary and Documentation
-// Allows you to Run following a specific path.  Supports options to prevent combat 
+// Allows you to Run following a specific path.  Supports options to prevent combat
 // (disables CC while running), use Click-To-Move instead of Navigator, and
 // the ability to specify a mob that when it enters the specified range, causes
-// you to move to the nexts point.  
-// 
+// you to move to the nexts point.
+//
 // A few key difference between this and having several RunTo/NoCombatMoveTo in sequence:
 // - HonorBuddy allows CC control between lines if attacked; RunLikeHell does not
 // - Syntax allows easy switch from ClickToMove() to Navigator.MoveTo() when a mesh is updated
 // - On startup, RunLikeHell finds the closest point in the path and starts there
 // - If Combat=true, will only fight if aggro picked up while running.. will not Pull
-// 
-// If QuestId is non-zero, behavior will stop when quest becomes complete even if 
+//
+// If QuestId is non-zero, behavior will stop when quest becomes complete even if
 // it has not completed NumOfTimes iterations of full path specified
-// 
-// You can control the movement with the options below. 
-// 
+//
+// You can control the movement with the options below.
+//
 // ##Syntax##
 // [Optional] QuestId: Id of the quest (default is 0)
 // [Optional] WaitTime: ms to pause at each point (default is 0)
@@ -46,23 +46,23 @@
 //     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
 //     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
 // </CustomBehavior>
-// 
-// following path up to 4 times and moves to next spot only 
+//
+// following path up to 4 times and moves to next spot only
 // if the mob #40434 is within 10 yds
 // <CustomBehavior File="RunLikeHell" NumOfTimes="4" MobId="40434" Range="10">
 //     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
 //     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
 //     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
 // </CustomBehavior>
-// 
-// following follows path up to 4 times and moves to next spot only 
+//
+// following follows path up to 4 times and moves to next spot only
 // if the mob #40434 is within 10 yds.  stops at 4 loops or when quest complete
 // <CustomBehavior File="RunLikeHell" QuestId="25499" NumOfTimes="4" MobId="40434" Range="10">
 //     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
 //     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
 //     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
 // </CustomBehavior>
-// 
+//
 #endregion
 
 
@@ -130,6 +130,9 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public bool AllowCombat { get; private set; }
@@ -160,10 +163,6 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
             }
         }
         private Queue<WoWPoint> Path { get; set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         private bool ParsePath()

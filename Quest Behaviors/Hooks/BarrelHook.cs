@@ -46,6 +46,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         private Composite CreateHook()
         {
@@ -53,7 +56,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
             return new Decorator(r => StyxWoW.Me.HasAura("Chuck Barrel"),
                 new PrioritySelector(ctx => ookOok = ObjectManager.GetObjectsOfTypeFast<WoWUnit>().FirstOrDefault(u => u.Entry == 57628),
-                    // only click the 'Break Barrel' button if ook is further than 20 units to - 
+                    // only click the 'Break Barrel' button if ook is further than 20 units to -
                     // prevent getting barrel thrown at character again right after removing it.
                     new Decorator(
                         ctx => ookOok == null || ookOok.Distance > 20,

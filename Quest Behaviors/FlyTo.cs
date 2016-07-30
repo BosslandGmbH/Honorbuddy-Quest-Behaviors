@@ -65,7 +65,7 @@
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
 //      DestinationChoices [required, if X/Y/Z is not specified; Default: none]
-//          The DestinationChoices contains a set of Waypoints.  ONE OF these waypoints will be randomly 
+//          The DestinationChoices contains a set of Waypoints.  ONE OF these waypoints will be randomly
 //			selected as the FLYTO destination.  This is useful for the following purposes:
 //				* Entering a large grinding area from multiple points
 //					This helps toons 'fan out' if there's competition in the area. It also prevents
@@ -92,13 +92,13 @@
 //					land on an exact point to prevent drawing aggro from a particular mob.  In this case, it is
 //					appropriated to set the AllowedVariance to zero.
 //              ArrivalTolerance [optional; Default: 1.5]
-//					The distance to X/Y/Z at which we can declare we have 'arrived'.  Once we are 
+//					The distance to X/Y/Z at which we can declare we have 'arrived'.  Once we are
 //					within ArrivalTolerance of the destination, landing procedures will be conducted
 //					if the caller has specified.  Otherwise, the behavior simply terminates.
 //
 // THiNGS TO KNOW:
 // * LCP article: http://iseclab.org/papers/botdetection-article.pdf
-//	
+//
 #endregion
 
 
@@ -112,7 +112,7 @@
 // to prevent unnecessarily aggroing guards:
 //		<CustomBehavior File="FlyTo" DestName="Thunderbluff flame" Land="true" AllowedVariance="0.0"
 //						X="-1053.131" Y="284.7893" Z="133.8197" />
-//		
+//
 //
 // "FANNING OUT" INTO A HUMAN-CONGESTED AREA:
 // Entering a human-congested area makes it very easy to spot bots, if they all land at the same exact location.
@@ -122,7 +122,7 @@
 //		<CustomBehavior File="FlyTo" Land="true" >
 //			<DestinationChoices>
 //				<Hotspot DestName="Stormwind: Backgate Bank" X="-8360.063" Y="620.2231" Z="95.35557" AllowedVariance="7.0" />
-//				<Hotspot DestName="Stormwind: Canal mailbox" X="-8752.236" Y="561.497" Z="97.43406" AllowedVariance="7.0" /> 
+//				<Hotspot DestName="Stormwind: Canal mailbox" X="-8752.236" Y="561.497" Z="97.43406" AllowedVariance="7.0" />
 //				<Hotspot DestName="Stormwind: Cathedral Square mailbox" X="-8657.595" Y="775.6388" Z="96.99747" AllowedVariance="3.0" />
 //				<Hotspot DestName="Stormwind: Elder's mailbox" X="-8859.798" Y="640.8622" Z="96.28608" AllowedVariance="5.0" />
 //				<Hotspot DestName="Stormwind: Fishing pier mailbox"  X="-8826.954" Y="729.8922" Z="98.42244" AllowedVariance="7.0" />
@@ -136,7 +136,7 @@
 //		<CustomBehavior File="FlyTo" Land="true" AllowedVariance="7.0" >
 //			<DestinationChoices>
 //				<Hotspot Name="Warmaul Hill: main path up" X="-1076.62" Y="8726.684" Z="78.98088" AllowedVariance="7.0" />
-//				<Hotspot Name="Warmaul Hill: cauldren on lower plateau" X="-1002.597" Y="8981.075" Z="94.9998" AllowedVariance="7.0" /> 
+//				<Hotspot Name="Warmaul Hill: cauldren on lower plateau" X="-1002.597" Y="8981.075" Z="94.9998" AllowedVariance="7.0" />
 //				<Hotspot Name="Warmaul Hill: mid-plateau fire banner" X="-753.0932" Y="8774.961" Z="183.0739" AllowedVariance="7.0" />
 //				<Hotspot Name="Warmaul Hill: mid-plateau path down" X="-769.6554" Y="8864.765" Z="182.0117" AllowedVariance="7.0" />
 //			</DestinationChoices>
@@ -274,9 +274,8 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.
@@ -422,7 +421,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         /// <summary>Determines if <paramref name="myPos"/> is at <paramref name="otherPos"/></summary>
         private bool AtLocation(WoWPoint myPos, WoWPoint otherPos)
         {
-            // We are using cylinder distance comparison because often times we want faily high precision 
+            // We are using cylinder distance comparison because often times we want faily high precision
             // but need an increased tolerance in the z coord due to 'otherPos' sometimes being below terrain.
             if (myPos.Distance2DSqr(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
                 return false;

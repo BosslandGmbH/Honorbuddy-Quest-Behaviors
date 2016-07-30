@@ -10,7 +10,7 @@
 //
 
 #region Summary and Documentation
-// 
+//
 // Examples :
 // This would make the profile pause until all party members are within interact range (and then continue the profile).
 // <CustomBehavior File="Misc\LoadProfileOn" CheckRange="1" />
@@ -28,7 +28,7 @@
 //
 // This would load a remote profile from my SVN.
 // <CustomBehavior File="Misc\LoadProfileOn" ProfileName="[Rep] Nat Pagle.xml" RemotePath="http://akna-hb.googlecode.com/svn/trunk/Profiles/[Rep] Nat Pagle/" />
-// 
+//
 // This would load a remote profile if everyone in your party is above level 50 and within interact range.
 // <CustomBehavior File="Misc\LoadProfileOn" MinLevel="50" CheckRange="1" ProfileName="[Rep] Nat Pagle.xml" RemotePath="http://akna-hb.googlecode.com/svn/trunk/Profiles/[Rep] Nat Pagle/" />
 //
@@ -101,6 +101,9 @@ namespace Styx.Bot.Quest_Behaviors
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         #region Variables
         // Attributes provided by caller

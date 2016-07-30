@@ -6,7 +6,7 @@
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.    
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Summary and Documentation
 //    <CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
@@ -72,6 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.howtomakemeatfresh
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         // Attributes provided by caller

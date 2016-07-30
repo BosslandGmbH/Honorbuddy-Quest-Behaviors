@@ -71,6 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
