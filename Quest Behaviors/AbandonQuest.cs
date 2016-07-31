@@ -98,7 +98,7 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         // Attributes provided by caller
         private int QuestId { get; set; }

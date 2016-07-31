@@ -68,7 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         #region variables
         // Attributes provided by caller

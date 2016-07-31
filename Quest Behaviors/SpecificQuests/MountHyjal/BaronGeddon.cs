@@ -74,7 +74,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
 

@@ -110,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         // Private properties
         private LocalPlayer Me

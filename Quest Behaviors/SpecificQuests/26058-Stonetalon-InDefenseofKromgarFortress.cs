@@ -60,7 +60,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         private VehicleWeapon WeaponFireCannon { get; set; }
 
