@@ -66,7 +66,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         public int QuestId { get; set; }
         public WoWPoint Location = new WoWPoint(-145.9611, 3192.408, -65.09953);

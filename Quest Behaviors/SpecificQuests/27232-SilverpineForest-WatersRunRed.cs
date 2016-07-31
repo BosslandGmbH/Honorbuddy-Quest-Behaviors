@@ -43,7 +43,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WatersRunRed
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
 
         private readonly WoWPoint _turretLoc = new WoWPoint(710.7488, 947.981, 34.75594);

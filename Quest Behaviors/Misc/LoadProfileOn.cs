@@ -103,7 +103,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
-        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         #region Variables
         // Attributes provided by caller
