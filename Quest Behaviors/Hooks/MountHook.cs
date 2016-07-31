@@ -283,7 +283,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private const int QuestId_LearnToRideAtTheExodar = 14082;
 
         private const int ItemId_PintoBridle = 2414;
-        private const int ItemId_ReinsoftheBlackDragonTurtle = 87795;
+        private const int ItemId_ReinsOfTheBlackDragonTurtle = 91008;
         private const int ItemId_BlueMechanostrider = 8595;
         private const int ItemId_WhiteRam = 5873;
         private const int ItemId_ReinsOfTheStripedNightsaber = 8629;
@@ -352,7 +352,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                                 QuestId_LearnToRide_Pandaren,
                                 MobId_OldWhitenose,
                                 _oldWhitenoseLoc,
-                                ItemId_ReinsoftheBlackDragonTurtle);
+                                ItemId_ReinsOfTheBlackDragonTurtle);
                 case WoWRace.Gnome:
                     return await TurninQuestAndBuyMount(
                                 MobId_BinjyFeatherwhistle,
@@ -476,7 +476,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private const int ItemId_GrayKodo = 15277;
         private const int ItemId_BlackSkeletalHorse = 46308;
         private const int ItemId_BlackHawkstrider = 29221;
-        private const int ItemId_ReinsOfTheGreenDragonTurtle = 91004;
         private const int ItemId_TawnyWindRider = 25474;
 
         private readonly WoWPoint _orgrimmarInnkeeperLoc = new WoWPoint(1573.266, -4439.158, 16.05631);
@@ -536,7 +535,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                         QuestId_LearnToRide_HordePanda,
                         MobId_TurtlemasterOdai,
                         _turtlemasterOdaiLoc,
-                        ItemId_ReinsOfTheGreenDragonTurtle);
+                        ItemId_ReinsOfTheBlackDragonTurtle);
 
                     break;
                 case WoWRace.Undead:
