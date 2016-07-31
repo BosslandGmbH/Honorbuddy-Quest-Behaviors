@@ -358,7 +358,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
 
-        protected abstract string GitId { get; }
+        // For the default value we use unexpanded
+        // Git ID which GitIdToVersionId handles to
+        // return vUnk.
+        protected virtual string GitId => "$" + "Id";
 
         public override string VersionId => GitIdToVersionId(GitId);
 
