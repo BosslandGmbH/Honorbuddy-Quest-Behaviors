@@ -111,12 +111,19 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 
             else
             {
-                Mount.FlyingMounts.First().CreatureSpell.Cast();
+                if (!string.IsNullOrEmpty(Styx.Helpers.CharacterSettings.Instance.FlyingMountName))
+                {
+                    foreach (var mount in Mount.FlyingMounts.Where(mount => mount.Name == Styx.Helpers.CharacterSettings.Instance.FlyingMountName))
+                        Mount.FlyingMounts.FirstOrDefault(m => m.CreatureSpellId == mount.CreatureSpellId)?.CreatureSpell.Cast();
+                }
+                else
+                    Mount.FlyingMounts.First().CreatureSpell.Cast();
                 await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
             }
 
             // Hop off the ground. Kthx
-            await Coroutine.Sleep(2500);
+            await Coroutine.Sleep(250);
+            await Coroutine.Wait(2000, () => StyxWoW.Me.Mounted);
             try
             {
                 Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
