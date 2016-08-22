@@ -100,7 +100,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
                 return false;
 
             Flightor.MountHelper.MountUp();
-            await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
 
             // Hop off the ground. Kthx
             await Coroutine.Sleep(250);
