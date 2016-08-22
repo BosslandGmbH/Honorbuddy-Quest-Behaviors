@@ -99,23 +99,10 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             if (!Flightor.CanFly)
                 return false;
 
-            if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || StyxWoW.Me.Level >= 58))
-            {
-                if (SpellManager.CanCast("Flight Form"))
-                { SpellManager.Cast("Flight Form"); }
-
-                else if (SpellManager.CanCast("Travel Form"))
-                { SpellManager.Cast("Travel Form"); }
-            }
-
-            else
-            {
-                Mount.FlyingMounts.First().CreatureSpell.Cast();
-                await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
-            }
+            Flightor.MountHelper.MountUp();
 
             // Hop off the ground. Kthx
-            await Coroutine.Sleep(2500);
+            await Coroutine.Sleep(250);
             try
             {
                 Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
