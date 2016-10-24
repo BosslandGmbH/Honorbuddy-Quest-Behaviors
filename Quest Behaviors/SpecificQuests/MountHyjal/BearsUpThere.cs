@@ -137,8 +137,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         //  ..  if you are on correct tree and correct side
 
         private const double AIM_ANGLE = -0.97389394044876;
-        private const double TRAMP_RIGHT_SIDE = 77.741;
-        private const double TRAMP_LEFT_SIDE = 92.366;
+        private const double TRAMP_RIGHT_SIDE = 87;
+        private const double TRAMP_LEFT_SIDE = 98;
 
 
         private async Task WaitForCurrentSpell()
