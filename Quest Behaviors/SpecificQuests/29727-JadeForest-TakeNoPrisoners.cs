@@ -31,6 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
@@ -93,8 +94,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
         public static int[] MobIds = new[] { 55411, 55484, 55473, 55505, 55485, MobId_SullysBombBarrel };
         public static int[] OrcIds = new[] { 55498, 55501, 55499 };
 
-        public static WoWPoint TurretLocation = new WoWPoint(1116.968f, -544.0963f, 413.5516f);
-        public static WoWPoint UsingTurretLocation = new WoWPoint(1296.96f, -430.156f, 314.718f);
+        public static Vector3 TurretLocation = new Vector3(1116.968f, -544.0963f, 413.5516f);
+        public static Vector3 UsingTurretLocation = new Vector3(1296.96f, -430.156f, 314.718f);
 
         public WoWUnit HozenEnemy
         {
@@ -155,7 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
             return new ActionRunCoroutine(ctx => Coroutine_CombatMain());
         }
 
-        private readonly WoWPoint _vehicleLoc = new WoWPoint(-157.5062f, -2659.278f, 1.069468f);
+        private readonly Vector3 _vehicleLoc = new Vector3(-157.5062f, -2659.278f, 1.069468f);
 
         private async Task<bool> Coroutine_CombatMain()
         {
@@ -205,7 +206,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
             if (!Me.HasAura("See Quest Invis 5"))
             {
                 var turret = Turret;
-                if (TurretLocation.DistanceSqr(Me.Location) > 3 * 3)
+                if (TurretLocation.DistanceSquared(Me.Location) > 3 * 3)
                 {
                     await UtilityCoroutine.MoveTo(TurretLocation, "Turret Location", MovementBy);
                     return true;

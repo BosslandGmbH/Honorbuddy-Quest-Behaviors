@@ -37,6 +37,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -77,7 +78,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 MobId_Objective1_SteamwheedleSurvivor = 38571;  // http://wowhead.com/npc=38571
                 MobId_Objective2_SouthseaBlockader = 40583;     // http://wowhead.com/npc=40583
                 MobId_SteamwheedleRescueBalloon = 40604;    // http://wowhead.com/npc=40604
-                VehicleStagingArea = new WoWPoint(-7092.513, -3906.368, 10.96168);
+                VehicleStagingArea = new Vector3(-7092.513f, -3906.368f, 10.96168f);
 
                 // Weapon allows TAU (i.e., 2*PI) horizontal rotation
                 WeaponAzimuthMax = 0.0;                    // Use: /script print(VehicleAimGetAngle())
@@ -102,7 +103,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         private int AuraId_EmergencyRocketPack { get; set; }
         private int AuraId_Parachute { get; set; }
         private int AuraId_RocketPack { get; set; }
-        private WoWPoint VehicleStagingArea { get; set; }
+        private Vector3 VehicleStagingArea { get; set; }
         private int MobId_Objective1_SteamwheedleSurvivor { get; set; }
         private int MobId_SteamwheedleRescueBalloon { get; set; }
         private int MobId_Objective2_SouthseaBlockader { get; set; }

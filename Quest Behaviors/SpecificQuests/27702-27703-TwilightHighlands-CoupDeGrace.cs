@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -120,7 +120,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
         }
 
 
-        private WoWPoint _spot = new WoWPoint(-2739.832, -5000.674, -127.1305);
+        private Vector3 _spot = new Vector3(-2739.832f, -5000.674f, -127.1305f);
 
         //Flightor.MoveTo(ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 46416 && u.IsAlive && u.CurrentHealth == 1).OrderBy(u => u.Distance).FirstOrDefault().Location);
 

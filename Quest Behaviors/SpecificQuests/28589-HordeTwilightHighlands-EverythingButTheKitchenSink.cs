@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using CommonBehaviors.Actions;
@@ -126,8 +127,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.EverythingButTheKitchenSink
 
             WoWMovement.ClickToMove(ct.Location.RayCast(ct.Rotation, 20));
             var transport = (WoWUnit)StyxWoW.Me.Transport;
-            Tripper.Tools.Math.Vector3 v = ct.Location - transport.Location;
-            v.Normalize();
+            Vector3 v = Vector3.Normalize(ct.Location - transport.Location);
             var lua = string.Format(
                 "VehicleAimIncrement(({0} - VehicleAimGetAngle())); CastPetAction({1});",
                 Math.Asin(v.Z),

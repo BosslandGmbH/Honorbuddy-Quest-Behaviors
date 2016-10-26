@@ -2,6 +2,7 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 
 using Buddy.Coroutines;
@@ -15,6 +16,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.CommonBot.Coroutines;
 using Styx.WoWInternals.WoWObjects;
+using Styx.Common;
 
 #endregion
 
@@ -51,18 +53,20 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public static async Task<bool> MoveTo(
             HuntingGroundsType huntingGrounds,
-            MovementByType movementBy = MovementByType.FlightorPreferred)
+            MovementByType movementBy = MovementByType.FlightorPreferred,
+            float? distanceTolerance = null)
         {
             Contract.Requires(huntingGrounds != null, context => "huntingGrounds may not be null");
             var destination = huntingGrounds.CurrentWaypoint().Location;
             var destinationName = String.Format("hunting ground waypoint '{0}'", huntingGrounds.CurrentWaypoint().Name);
-            return await MoveTo(destination, destinationName, movementBy);
+            return await MoveTo(destination, destinationName, movementBy, distanceTolerance);
         }
 
         public static async Task<bool> MoveTo(
-            WoWPoint destination,
+            Vector3 destination,
             string destinationName,
-            MovementByType movementBy = MovementByType.FlightorPreferred)
+            MovementByType movementBy = MovementByType.FlightorPreferred,
+            float? distanceTolerance = null)
         {
             Contract.Requires(destinationName != null, context => "destinationName may not be null");
 
@@ -87,24 +91,24 @@ namespace Honorbuddy.QuestBehaviorCore
             switch (movementBy)
             {
                 case MovementByType.FlightorPreferred:
-                    if (await TryFlightor(destination))
+                    if (await TryFlightor(destination, distanceTolerance))
                         return true;
 
-                    if (await TryNavigator(destination, destinationName))
+                    if (await TryNavigator(destination, distanceTolerance, destinationName))
                         return true;
 
                     if (await TryClickToMove(destination, NavType.Fly))
                         return true;
                     break;
                 case MovementByType.NavigatorPreferred:
-                    if (await TryNavigator(destination, destinationName))
+                    if (await TryNavigator(destination, distanceTolerance, destinationName))
                         return true;
 
                     if (await TryClickToMove(destination, NavType.Run))
                         return true;
                     break;
                 case MovementByType.NavigatorOnly:
-                    if (await TryNavigator(destination, destinationName))
+                    if (await TryNavigator(destination, distanceTolerance, destinationName))
                         return true;
                     break;
                 case MovementByType.ClickToMoveOnly:
@@ -121,7 +125,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return false;
         }
 
-        private static async Task<bool> SetMountState(WoWPoint destination, NavType navType = NavType.Fly)
+        private static async Task<bool> SetMountState(Vector3 destination, NavType navType = NavType.Fly)
         {
             // Are we mounted, and not supposed to be?
             if (!Mount.UseMount && Me.IsMounted())
@@ -132,7 +136,9 @@ namespace Honorbuddy.QuestBehaviorCore
             // Are we unmounted, and mount use is permitted?
             // NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
             // (based on NavType).
-            if (Mount.UseMount && destination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance)
+            // Also use euclidean distance -- this is fine as it is more human like than mesh distance (a human will eye-ball
+            // whether to use the mount).
+            if (Mount.UseMount && destination.Distance(WoWMovement.ActiveMover.Location) > 60)
             {
                 if (await ExecuteMountStrategy(MountStrategyType.Mount, navType))
                     return true;
@@ -140,62 +146,66 @@ namespace Honorbuddy.QuestBehaviorCore
             return false;
         }
 
-
         private static async Task<bool> TryClickToMove(
-            WoWPoint destination,
+            Vector3 destination,
             NavType navType = NavType.Fly)
         {
-            var activeMover = WoWMovement.ActiveMover;
             // NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
             if (await SetMountState(destination, navType))
                 return true;
 
-            // If Navigator can generate a parital path for us, take advantage of it...
-            var tempDestination =
-                Navigator.GeneratePath(activeMover.Location, destination)
-                    .Where(p => !Navigator.AtLocation(p))
-                    .DefaultIfEmpty(destination)
-                    .FirstOrDefault();
-
-            WoWMovement.ClickToMove(tempDestination);
+            WoWMovement.ClickToMove(destination);
             return true;
         }
 
-
-        private static async Task<bool> TryFlightor(WoWPoint destination)
+        private static async Task<bool> TryFlightor(Vector3 destination, float? distanceTolerance)
         {
             // If a toon can't fly, skip this...
             // NB: Although Flightor will fall back to Navigator, there are side-effects.
             // Flightor will mount even if UseMount is disabled.  So, if we don't want to mount
             // we don't want to even try Flightor; otherwise, unexpected side-effects can ensue.
-            var activeMover = WoWMovement.ActiveMover;
-            if (Mount.UseMount || activeMover.IsSwimming
-                || !Navigator.CanNavigateWithin(activeMover.Location, destination, 5))
+
+            // TODO: There used to be a CanNavigateWithin check here, which is hard to replace.
+            // Possibly make flightor's MoveTo return something to indicate whether it fails.
+
+            FlyToParameters flyToParams = new FlyToParameters(destination)
             {
-                Flightor.MoveTo(destination, 15.0f, true);
-                return true;
-            }
-            return false;
+                MinHeight = 15f,
+                CheckIndoors = true,
+            };
+
+            if (distanceTolerance.HasValue)
+                flyToParams.GroundNavParameters.DistanceTolerance = distanceTolerance.Value;
+
+            Flightor.MoveTo(flyToParams);
+            return true;
         }
 
 
-        private static async Task<bool> TryNavigator(WoWPoint destination, string destinationName = null)
+        private static async Task<bool> TryNavigator(Vector3 destination, float? distanceTolerance, string destinationName = null)
         {
-            var activeMover = WoWMovement.ActiveMover;
+            MoveToParameters moveToParams = new MoveToParameters(destination);
+
+            if (distanceTolerance.HasValue)
+                moveToParams.DistanceTolerance = distanceTolerance.Value;
+
             // If we can navigate to destination, use navigator...
-            if (Navigator.CanNavigateFully(activeMover.Location, destination))
+            var moveResult = Navigator.MoveTo(moveToParams);
+            if (moveResult.IsSuccessful())
+                return true;
+
+            // Make sure we are on ground if navigation failed.
+            if (StyxWoW.Me.IsFlying)
             {
-                var moveResult = Navigator.MoveTo(destination);
-                if (Navigator.GetRunStatusFromMoveResult(moveResult) == RunStatus.Success)
-                {
+                if (await CommonCoroutines.LandAndDismount("For ground navigation"))
                     return true;
-                }
             }
+
             if (destinationName == null)
                 destinationName = destination.ToString();
             QBCLog.DeveloperInfo(
                 "Navigator unable to move from {0} to destination({1}, {2}) on ground --try MovementBy=\"FlightorPreferred\".",
-                activeMover.Location,
+                WoWMovement.ActiveMover.Location,
                 destinationName,
                 destination.ToString());
             return false;
@@ -205,10 +215,12 @@ namespace Honorbuddy.QuestBehaviorCore
         public class NoMobsAtCurrentWaypoint : CoroutineTask<bool>
         {
             private ThrottleCoroutineTask _messageThrottle;
+            private readonly float? _distanceTolerance;
 
             public NoMobsAtCurrentWaypoint(
                 Func<HuntingGroundsType> huntingGroundsProvider,
                 Func<MovementByType> movementByDelegate,
+                float? distanceTolerance,
                 System.Action terminateBehaviorIfNoTargetsProvider = null,
                 Func<string> huntedMobExclusions = null)
             {
@@ -217,6 +229,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 HuntingGroundsProvider = huntingGroundsProvider;
                 MovementByDelegate = movementByDelegate ?? (() => MovementByType.FlightorPreferred);
+                _distanceTolerance = distanceTolerance;
                 TerminateBehaviorIfNoTargetsProvider = terminateBehaviorIfNoTargetsProvider;
                 HuntedMobExclusions = huntedMobExclusions ?? (() => String.Empty);
             }
@@ -237,13 +250,12 @@ namespace Honorbuddy.QuestBehaviorCore
                     await (_messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage)));
 
                     // Terminate of no targets available?
-                    if (TerminateBehaviorIfNoTargetsProvider != null)
-                        TerminateBehaviorIfNoTargetsProvider();
+                    TerminateBehaviorIfNoTargetsProvider?.Invoke();
                     return false;
                 }
 
                 // Move to next hunting ground waypoint...
-                if (await MoveTo(huntingGrounds, MovementByDelegate()))
+                if (await MoveTo(huntingGrounds, MovementByDelegate(), _distanceTolerance))
                     return true;
 
 

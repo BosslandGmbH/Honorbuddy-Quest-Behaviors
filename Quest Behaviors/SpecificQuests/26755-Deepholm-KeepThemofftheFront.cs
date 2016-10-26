@@ -21,7 +21,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Numerics;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -90,7 +90,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
                     .ToList();
             }
         }
-        private readonly WoWPoint _catapultLoc = new WoWPoint(21023.448, 1888.969, 309.9148);
+        private readonly Vector3 _catapultLoc = new Vector3(21023.448f, 1888.969f, 309.9148f);
 
 
         private WoWUnit BestTarget
@@ -108,7 +108,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
                 return
                    (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                     where _mobIds.Contains(unit.Entry) && unit.IsAlive
-                    let distanceSqr = myLoc.DistanceSqr(unit.Location)
+                    let distanceSqr = myLoc.DistanceSquared(unit.Location)
                     where distanceSqr > 25 * 25
                     orderby distanceSqr
                     select unit)

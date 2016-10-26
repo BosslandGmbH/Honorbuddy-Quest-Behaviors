@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -51,9 +51,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         private const int QuestId = 31228;
         private const uint InvisibleManId = 64693;
         private const uint CrowStormId = 64678;
-        private readonly WoWPoint _platformPoint = new WoWPoint(5236.239, 58.70723, 33.64487);
+        private readonly Vector3 _platformPoint = new Vector3(5236.239f, 58.70723f, 33.64487f);
         private Composite _behaviorTreeHook_Combat;
-        private readonly WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
+        private readonly Vector3 _prophetLocation = new Vector3(5246.656f, 54.33482f, 31.962f);
 
         public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args)
         {

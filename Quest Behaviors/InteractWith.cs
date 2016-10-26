@@ -51,10 +51,10 @@
 // Optional Target Qualifiers (applies to all targets, including 'self'):
 // These attributes further qualify a target that fullfills the MobIdN/FactionIdN/Self selection.
 //      AuraIdOnMobN [optional; Default: none]
-//          The target *must* possess an aura that matches one of the defined 
+//          The target *must* possess an aura that matches one of the defined
 //          AuraIdMissingFromMobN, in order to be considered a target for interaction.
 //      AuraIdMissingFromMob [optional; Default: none]
-//          The target must *not* possess an aura that matches one of the defined 
+//          The target must *not* possess an aura that matches one of the defined
 //          AuraIdMissingFromMobN, in order to be considered a target for interaction.
 //      MobHpPercentLeft [optional; Default: 100.0]
 //          The target's health must be at or below this value to be considered a qualfiied target.
@@ -69,13 +69,13 @@
 // Interaction by Buying Items:
 //      BuyItemCount [optional; Default: 1]
 //          This is the number of items (specified by BuyItemId) that should be
-//          purchased from the Vendor (specified by MobId). 
+//          purchased from the Vendor (specified by MobId).
 //			This can be a math expression e.g. BuyItemCount="10 - GetItemCount(1234)"
 //      InteractByBuyingItemId [optional; Default: none]
 //          This is the ItemId of the item that should be purchased from the
 //          Vendor (specified by MobId).
 //		MissingBuyItemIsFatal [optional; Default: true]
-//			Specifies whether profile will terminate if a vendor that InteractWith is buying an 
+//			Specifies whether profile will terminate if a vendor that InteractWith is buying an
 //			item from does not offer the item
 //
 //	Interact by Casting Spell:
@@ -319,7 +319,7 @@
 //      Logging.Write("AreaID: {0}", StyxWoW.Me.HearthstoneAreaId);
 //
 //
-// QUEST EXAMPLES:  
+// QUEST EXAMPLES:
 // "By Any Means Necessary" (http://wowhead.com/quest=9978)
 // This is a difficult quest for a number of reasons. First, a bug in the WoWclient indicates the quest
 // is always completed, whether it is or not.  Thus we can not use an "IsCompleted" test to make decisions.
@@ -368,6 +368,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
@@ -379,6 +380,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
@@ -472,7 +474,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 BuyItemCount = Utility.ProduceCachedValueFromCompiledExpression(BuyItemCountCompiledExpression, 1);
 
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundCenter = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
                 InteractBlacklistTimeInSeconds =
@@ -514,10 +516,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 : MovementByType.None;
                 }
 
+                double? forcedTolerance = null;
+                if (MovementBy == MovementByType.FlightorPreferred)
+                    forcedTolerance = 3f;
+
                 // Hunting ground processing...
-                HuntingGrounds = HuntingGroundsType.GetOrCreate(Element,
-                                                                "HuntingGrounds",
-                                                                new WaypointType(HuntingGroundCenter, "hunting ground center"));
+                HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds",
+                    new WaypointType(HuntingGroundCenter, "hunting ground center"), forcedTolerance);
+
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
                 // Default value for 'WaitForNpcs' is 'true' when no HuntingGrounds sub element is used.
@@ -557,7 +563,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public DelayCompiledExpression<Func<int>> BuyItemCountCompiledExpression { get; private set; }
 
         private double CollectionDistance { get; set; }
-        private WoWPoint HuntingGroundCenter { get; set; }
+        private Vector3 HuntingGroundCenter { get; set; }
         private bool IgnoreCombat { get; set; }
         private bool IgnoreLoSToTarget { get; set; }
         private int? InteractBlacklistTimeInSeconds { get; set; }
@@ -942,6 +948,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new UtilityCoroutine.NoMobsAtCurrentWaypoint(
                             () => HuntingGrounds,
                             () => MovementBy,
+                            (float)GetMaxRange(null),
                             () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
                             () =>
                                 TargetExclusionAnalysis.Analyze(
@@ -1064,7 +1071,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 {
                     // if Selected object is lootable then we can expect a lootframe to be opened from interaction.
                     // We will need to loot items from lootframe since sometimes auto-loot is turned off.
-                    // We need to check if 'CanLoot' before we perform any interaction otherwise 
+                    // We need to check if 'CanLoot' before we perform any interaction otherwise
                     // 'CanLoot' may report 'false' when object is already interacted with.
                     var lootableObj = SelectedTarget as ILootableObject;
                     var isLootable = Query.IsViable(SelectedTarget) && lootableObj != null && lootableObj.CanLoot;
@@ -1081,7 +1088,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     if (!await UtilityCoroutine.Interact(SelectedTarget))
                         return false;
 
-                    // We need to wait for the lootframe if object is lootable right now, 
+                    // We need to wait for the lootframe if object is lootable right now,
                     // otherwise we might miss the loot frame and get stuck infinitely.
                     if (isLootable && await Coroutine.Wait(2000, () => IsLootFrameVisible))
                         await SubCoroutine_HandleFrame_Loot();
@@ -1137,7 +1144,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 {
                     _watchdogTimerToReachDestination =
                         new WaitTimer(
-                            SelectedTarget.Location.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
+                            SelectedTarget.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
                     _watchdogTimerToReachDestination.Reset();
                 }
 
@@ -1169,25 +1176,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if (await UtilityCoroutine.MoveTo(
                     Utility.GetPointToGainDistance(SelectedTarget, rangeMin),
                     destinationName,
-                    MovementBy))
+                    MovementBy,
+                    (float)GetMaxRange(SelectedTarget)))
                 {
                     return true;
                 }
             }
             if (IsDistanceCloseNeeded(SelectedTarget))
             {
-                if (MovementBy == MovementByType.NavigatorOnly
-                    && !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedTarget.Location)
-                    && (!Me.IsFlying || !Me.IsOnTransport))
-                {
-                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
-                    TreeRoot.StatusText = string.Format(
-                        "Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
-                        GetName(SelectedTarget),
-                        SelectedTarget.Distance,
-                        blacklistDuration);
-                    return true;
-                }
                 if (MovementBy == MovementByType.None)
                 {
                     TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
@@ -1210,8 +1206,21 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         ? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
                         : "\u221E"));
 
-                if (await UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy))
-                    return true;
+                if (!await UtilityCoroutine.MoveTo(
+                    SelectedTarget.Location,
+                    destinationName,
+                    MovementBy,
+                    (float)GetMaxRange(SelectedTarget)))
+                {
+                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
+                    TreeRoot.StatusText = string.Format(
+                        "Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
+                        GetName(SelectedTarget),
+                        SelectedTarget.Distance,
+                        blacklistDuration);
+                }
+
+                return true;
             }
 
             // Prep to interact...
@@ -1595,7 +1604,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if (unit.PlayerControlled)
                     continue;
 
-                if (unit.Location.PathTraversalCost(unit.Location) > (unit.MyAggroRange + unit.InteractRange))
+                if (unit.PathTraversalCost() > (unit.MyAggroRange + unit.InteractRange))
                     continue;
 
                 outgoingUnits.Add(unit);
@@ -1636,7 +1645,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         if (unit.Distance > aggroRange)
                             return true;
 
-                        if (unit.Location.PathTraversalCost(Me.Location) > aggroRange)
+                        if (unit.PathTraversalCost() > aggroRange)
                             return true;
                     }
 
@@ -1750,11 +1759,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     from wowObject in ObjectManager.ObjectList
                     where
                         Query.IsViable(wowObject)
+                        && (wowObject is WoWGameObject || wowObject is WoWUnit)
                         && PursuitList.ShouldPursue(wowObject, out pursuePriority)
                         && IsInteractNeeded(wowObject, mobState)
                         && Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
                     let priority = pursuePriority
-                    let objectCollectionDistance = wowObject.Location.CollectionDistance()
+                    let objectCollectionDistance = wowObject.CollectionDistance()
                     where
                         objectCollectionDistance <= CollectionDistance
                     orderby priority descending
@@ -1874,7 +1884,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             get
             {
                 // NB: InteractByLoot is nothing more than a normal "right click" activity
-                // on something. If something is normally 'lootable', WoW will deal with it 
+                // on something. If something is normally 'lootable', WoW will deal with it
                 // if Auto-loot is enabled.
                 return
                     (InteractByBuyingItemId > 0)
@@ -1927,7 +1937,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 return isViableForInteracting;
             }
 
-            // Additional qualifiers for WoWUnits...        
+            // Additional qualifiers for WoWUnits...
             return
                 isViableForInteracting
                 && Query.IsStateMatch_NotMoving(wowUnit, NotMoving)
@@ -1967,7 +1977,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (RangeMin.HasValue && unit != null && unit.Aggro)
                 return false;
 
-            return wowObject.Location.CollectionDistance() <= CollectionDistance;
+            return wowObject.CollectionDistance() <= CollectionDistance;
         }
 
 
@@ -1984,11 +1994,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private double GetMaxRange(WoWObject wowObject)
         {
-            if (!Query.IsViable(wowObject))
-                return double.MaxValue;
-
             if (RangeMax.HasValue)
                 return RangeMax.Value;
+
+            if (!Query.IsViable(wowObject))
+                return 5.5;
 
             var spell = GetInteractSpell();
 
@@ -2014,7 +2024,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (spell != null && spell.HasRange)
             {
                 var wowUnit = wowObject as WoWUnit;
-                return wowUnit != null ? spell.MinRange + wowUnit.CombatReach + 4 / 3f : spell.MinRange;
+                return wowUnit != null && spell.MinRange > 0 ? spell.MinRange + wowUnit.CombatReach + 4 / 3f : spell.MinRange;
             }
 
             return 0;
@@ -2035,7 +2045,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
             TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
 
-            var objectCollectionDistance = wowObject.Location.CollectionDistance();
+            var objectCollectionDistance = wowObject.CollectionDistance();
             if (objectCollectionDistance > CollectionDistance)
             {
                 exclusionReasons.Add(

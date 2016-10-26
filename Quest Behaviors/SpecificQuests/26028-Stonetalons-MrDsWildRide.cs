@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -43,8 +43,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
     [CustomBehaviorFileName(@"SpecificQuests\26028-Stonetalons-MrDsWildRide")]
     public class MrDsWildRide : CustomForcedBehavior
     {
-        private readonly WoWPoint _startPoint = new WoWPoint(881.027, 7.636441, 92.68436);
-        private readonly WoWPoint _waitPoint = new WoWPoint(1044.221, 20.16862, 8.893167);
+        private readonly Vector3 _startPoint = new Vector3(881.027f, 7.636441f, 92.68436f);
+        private readonly Vector3 _waitPoint = new Vector3(1044.221f, 20.16862f, 8.893167f);
         private bool _isBehaviorDone;
 
         private Composite _root;
@@ -54,7 +54,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 
         public override void OnFinished()
         {
-            CharacterSettings.Instance.UseMount = _useMount;
+            CharacterSettings.Instance.UseGroundMount = _useMount;
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
@@ -106,7 +106,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
                 return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
                         where u.Entry == 35203 && !u.IsDead
                         let loc = u.Location
-                        orderby loc.DistanceSqr(myLoc)
+                        orderby loc.DistanceSquared(myLoc)
                         select u).ToList();
             }
         }
@@ -119,7 +119,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
                 return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
                         where u.Entry == 35334 && !u.IsDead
                         let loc = u.Location
-                        orderby loc.DistanceSqr(myLoc)
+                        orderby loc.DistanceSquared(myLoc)
                         select u).ToList();
             }
         }
@@ -146,7 +146,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .FirstOrDefault(r => r.Entry == 40907 && r.Location.DistanceSqr(_startPoint) < 30 * 30);
+                    .FirstOrDefault(r => r.Entry == 40907 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
             }
         }
 
@@ -212,34 +212,38 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 
                             // cast 'Incinerate' ability on melee range target.
                             new Decorator(
-                                ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 15 * 15,
+                                ctx => Me.Location.DistanceSquared(attackTarget.Location) <= 15 * 15,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 15 * 15 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
+                                        ctx => Me.Location.DistanceSquared(attackTarget.Location) <= 15 * 15 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
                                         new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
                                     new Action(ctx => Lua.DoString("CastPetAction(1)")))),
-                            new Decorator(ctx => Me.Location.DistanceSqr(attackTarget.Location) > 15 * 15,
+                            new Decorator(ctx => Me.Location.DistanceSquared(attackTarget.Location) > 15 * 15,
                                 new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
                     new Decorator(
                         ctx => attackTarget == null,
                         new PrioritySelector(
                             new Decorator(
-                                ctx => Me.Location.DistanceSqr(_waitPoint) > 10 * 10,
+                                ctx => Me.Location.DistanceSquared(_waitPoint) > 10 * 10,
                                 new PrioritySelector(
                                     // can't set path precision so I'll just handle it directly...
                                     // the IronShredder takes wide turns so needs a higher path precision than normal
-                                    new Decorator(
-                                        ctx =>
-                                        {
-                                            var nav = Navigator.NavigationProvider as MeshNavigator;
-                                            if (nav == null)
-                                                return false;
-                                            if (nav.CurrentMovePath == null || nav.CurrentMovePath.Index >= nav.CurrentMovePath.Path.Points.Length)
-                                                return false;
-                                            WoWPoint point = nav.CurrentMovePath.Path.Points[nav.CurrentMovePath.Index];
-                                            return point.DistanceSqr(Me.Location) < 6 * 6;
-                                        },
-                                        new Action(ctx => ((MeshNavigator)Navigator.NavigationProvider).CurrentMovePath.Index++)),
+#warning FIXME AdvancePath
+                                    // TODO: AdvancePath
+                                    // This should be handled in navigator instead - it should have seamless support
+                                    // for vehicles.
+                                    //									new Decorator(
+                                    //										ctx =>
+                                    //										{
+                                    //											var nav = Navigator.NavigationProvider as MeshNavigator;
+                                    //											if (nav == null)
+                                    //												return false;
+                                    //											if (nav.CurrentMovePath == null || nav.CurrentMovePath.Index >= nav.CurrentMovePath.Path.Points.Length)
+                                    //												return false;
+                                    //											Vector3 point = nav.CurrentMovePath.Path.Points[nav.CurrentMovePath.Index];
+                                    //											return point.DistanceSquared(Me.Location) < 6 * 6;
+                                    //										},
+                                    //										new Action(ctx => ((MeshNavigator)Navigator.NavigationProvider).CurrentMovePath.Index++)),
 
                                     CreateBehavior_Antistuck(),
 
@@ -255,8 +259,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
-                _useMount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _useMount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
 
                 this.UpdateGoalText(QuestId);
             }
@@ -278,8 +282,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
         private readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
         protected Composite CreateBehavior_Antistuck()
         {
-            var prevPosition = WoWPoint.Empty;
-            WoWPoint myLoc = WoWPoint.Empty;
+            var prevPosition = Vector3.Zero;
+            Vector3 myLoc = Vector3.Zero;
             var moveDirection = WoWMovement.MovementDirection.None;
 
             return new PrioritySelector(
@@ -289,7 +293,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
                         ctx => myLoc = WoWMovement.ActiveMover.Location,
                         // checks if stuck
                         new DecoratorContinue(
-                            ctx => myLoc.DistanceSqr(prevPosition) < 3 * 3,
+                            ctx => myLoc.DistanceSquared(prevPosition) < 3 * 3,
                             new Sequence(
                                         ctx => moveDirection = GetRandomMovementDirection(),
                                         new Action(ctx => QBCLog.Debug("Stuck. Movement Directions: {0}", moveDirection)),

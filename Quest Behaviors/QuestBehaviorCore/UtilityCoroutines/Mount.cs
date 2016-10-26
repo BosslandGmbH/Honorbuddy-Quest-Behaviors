@@ -109,7 +109,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     // NB: Force mounting by specifying a large distance to destination...
                     if (!Me.Mounted && Mount.CanMount())
                     {
-                        if (Mount.MountUp(() => true, () => WoWMovement.ActiveMover.Location.Add(1000.0, 1000.0, 1000.0)))
+                        if (await CommonCoroutines.SummonGroundMount())
                         {
                             return true;
                         }
@@ -128,7 +128,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks> raphus, 12/10/2013. </remarks>
         public static async Task<bool> LandAndDismount(string reason = "[QB] LandAndDismount")
         {
-            return await new Mount.ActionLandAndDismount(reason).ExecuteCoroutine();
+            return await CommonCoroutines.LandAndDismount(reason);
         }
     }
 }

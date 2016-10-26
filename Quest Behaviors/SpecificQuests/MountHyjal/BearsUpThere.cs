@@ -34,6 +34,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -41,6 +42,7 @@ using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
@@ -151,7 +153,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         private async Task ClimbUp()
         {
             // bool canCast = CanCastNow(CLIMB_UP);
-            WoWPoint lastPos = Me.Location;
+            Vector3 lastPos = Me.Location;
             // Lua.DoString("CastSpellByID({0})", CLIMB_UP);
             Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
             await WaitForCurrentSpell();
@@ -179,7 +181,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             else
                 spellId = CLIMB_DOWN_AT_TOP;
 
-            WoWPoint lastPos = Me.Location;
+            Vector3 lastPos = Me.Location;
             Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
             await WaitForCurrentSpell();
 

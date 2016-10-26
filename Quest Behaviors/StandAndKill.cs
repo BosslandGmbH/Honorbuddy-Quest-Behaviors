@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -54,7 +54,7 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
@@ -82,7 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
 
 
         // Private variables for internal state

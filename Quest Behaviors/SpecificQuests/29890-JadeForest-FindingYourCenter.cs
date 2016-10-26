@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -123,7 +123,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
         {
             get
             {
-                var brewLoc = new WoWPoint(-631.5737, -2365.238, 22.87861);
+                var brewLoc = new Vector3(-631.5737f, -2365.238f, 22.87861f);
                 WoWGameObject brew = null;
                 const uint brewId = 213754;
 
@@ -151,8 +151,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
-                _useMount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _useMount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
 
                 this.UpdateGoalText(QuestId);
             }
@@ -160,7 +160,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
 
         public override void OnFinished()
         {
-            CharacterSettings.Instance.UseMount = _useMount;
+            CharacterSettings.Instance.UseGroundMount = _useMount;
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;

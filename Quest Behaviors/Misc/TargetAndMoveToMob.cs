@@ -143,11 +143,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -181,7 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                 TargetOnlyIfMobMissingAuraId = GetNumberedAttributesAsArray<int>("TargetOnlyIfMobMissingAuraId", 0, ConstrainAs.AuraId, null);
 
                 // Tunables...
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundCenter = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
                 MoveWithinMaxRangeOfMob = GetAttributeAsNullable<double>("MoveWithinMaxRangeOfMob", false, null, null) ?? 30.0;
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
@@ -208,7 +210,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
 
         // Variables for Attributes provided by caller
-        private WoWPoint HuntingGroundCenter { get; set; }
+        private Vector3 HuntingGroundCenter { get; set; }
         private bool IgnoreLoSToTarget { get; set; }
         private int[] MobIds { get; set; }
         private double MoveWithinMaxRangeOfMob { get; set; }
@@ -343,6 +345,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                                             new UtilityCoroutine.NoMobsAtCurrentWaypoint(
                                                 () => HuntingGrounds,
                                                 () => MovementBy,
+                                                null,
                                                 () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
                                                 () => TargetExclusionAnalysis.Analyze(
                                                     Element,

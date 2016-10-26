@@ -23,6 +23,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
@@ -84,12 +85,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
-        private Composite _root;
         private const uint TwilightShadowdrakeId = 49873;
         private const uint VermillionDefenderId = 49872;
         private const uint VermillionVanguardId = 49914;
-        private static readonly WoWPoint s_questLocation = new WoWPoint(-3924.175, -3475.402, 640.4075);
+        private static readonly Vector3 s_questLocation = new Vector3(-3924.175f, -3475.402f, 640.4075f);
 
         // Private properties
         private LocalPlayer Me
@@ -118,7 +117,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
                 // if there are no targets then move to quest area.
                 if (target == null)
                 {
-                    if (activeMover.Location.DistanceSqr(s_questLocation) > 10 * 10)
+                    if (activeMover.Location.DistanceSquared(s_questLocation) > 10 * 10)
                     {
                         Flightor.MoveTo(s_questLocation);
                     }
@@ -132,7 +131,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
                     return true;
                 }
 
-                var targetDistSqr = activeMover.Location.DistanceSqr(target.Location);
+                var targetDistSqr = activeMover.Location.DistanceSquared(target.Location);
                 // move to target
                 if (targetDistSqr > 60 * 60 || !target.InLineOfSpellSight)
                 {
@@ -173,14 +172,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
             return false;
         }
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+        public override bool IsDone => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
 
         public override void OnStart()
         {

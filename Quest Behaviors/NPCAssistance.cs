@@ -33,6 +33,7 @@ using System.Linq;
 
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;

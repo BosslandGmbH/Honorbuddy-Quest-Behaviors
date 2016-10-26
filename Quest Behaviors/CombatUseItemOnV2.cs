@@ -216,6 +216,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -279,7 +280,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // Either HuntingGroundCenter or <HuntingGrounds> subelement must be provided...
                 // The sanity check for this is done in OnStart() since that's where we must do
                 // all sub-element processing due to the way CustomForcedBehavior is architected.
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
+                HuntingGroundCenter = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null);
 
                 // Tunables...
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
@@ -315,7 +316,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         // Variables for Attributes provided by caller
         private double CollectionDistance { get; set; }
-        private WoWPoint? HuntingGroundCenter { get; set; }
+        private Vector3? HuntingGroundCenter { get; set; }
         private int InteractBlacklistTimeInSeconds { get; set; }
         private int ItemId { get; set; }
         private int ItemAppliesAuraId { get; set; }
@@ -511,6 +512,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 new UtilityCoroutine.NoMobsAtCurrentWaypoint(
                                     () => HuntingGrounds,
                                     () => MovementBy,
+                                    null,
                                     () => { /*NoOp*/},
                                     () => TargetExclusionAnalysis.Analyze(
                                         Element,
@@ -551,7 +553,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         interactUnitContext => UtilityCoroutine.MoveTo(
                             SelectedTarget.Location,
                             string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.SafeName),
-                            MovementBy))),
+                            MovementBy,
+                            (float)MaxRangeToUseItem))),
 
                 // If time to use the item, do so...
                 new Decorator(context => IsUseItemNeeded(SelectedTarget),
@@ -676,7 +679,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 && Query.IsViableForInteracting(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                 && Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                 && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId))
-                && wowUnit.Location.CollectionDistance() <= CollectionDistance;
+                && wowUnit.CollectionDistance() <= CollectionDistance;
         }
 
 

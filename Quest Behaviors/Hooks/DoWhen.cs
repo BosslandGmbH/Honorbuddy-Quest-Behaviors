@@ -129,7 +129,7 @@
 // At any time, to see the list of current DoWhen activities, use the "ShowActivities" Command:
 //      <CustomBehavior File="Hooks\DoWhen" Command="ShowActivities" />
 // Output will be generated to the log that looks like the following:
-//      [DoWhen-v$Rev$(info)] DoWhenActivities in use (count:2):
+//      [DoWhen-v$Rev: 2204 $(info)] DoWhenActivities in use (count:2):
 //          SpellId(159)
 //              Used when: "Me.GotTarget && (Me.CurrentTarget.Entry == 43034)"
 //              Enabled=True
@@ -429,7 +429,6 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                         QBCLog.MaintenanceError("Unhandled action type of '{0}'.", Command);
                         TreeRoot.Stop();
                         return;
-                        break;
                 }
 
                 // Install or remove behavior as needed...

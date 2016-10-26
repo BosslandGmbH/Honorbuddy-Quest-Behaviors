@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -123,7 +124,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
                 // by Honorbuddy, or the bot is stopped.
-                CharacterSettings.Instance.UseMount = false;
+                CharacterSettings.Instance.UseGroundMount = false;
 
                 // Setup the BehaviorFlags as needed --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
@@ -142,9 +143,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         #endregion
 
         #region Behavior
-        private bool _mount;
         private uint[] _jinyu = new uint[] { 55793, 56701, 55791, 55711, 55709, 55710 };
-        private WoWPoint _phase2RelativePos = new WoWPoint(0, 0, -30);
+        private Vector3 _phase2RelativePos = new Vector3(0, 0, -30);
 
 
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
@@ -216,7 +216,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             if (Me.IsQuestComplete(QuestId) || !Query.IsInVehicle())
             {
                 QBCLog.Info("Finished!");
-                CharacterSettings.Instance.UseMount = true;
+                CharacterSettings.Instance.UseGroundMount = true;
                 BehaviorDone();
                 return true;
             }

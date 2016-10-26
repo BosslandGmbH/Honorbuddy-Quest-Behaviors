@@ -86,6 +86,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -135,7 +136,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 MoveToPool = GetAttributeAsNullable<bool>("MoveToPool", false, null, null) ?? true;
                 PoolId = GetAttributeAsNullable<int>("PoolId", false, ConstrainAs.ItemId, null) ?? 0;
                 TestFishing = GetAttributeAsNullable<bool>("TestFishing", false, null, null) ?? false;
-                WaterPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                WaterPoint = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 UseFishingGear = GetAttributeAsNullable<bool>("UseFishingGear", false, null, null) ?? false;
                 BaitId = GetAttributeAsNullable<int>("BaitId", false, null, null);
             }
@@ -166,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         public bool MoveToPool { get; private set; }
         public static int PoolId { get; private set; }
         public bool TestFishing { get; private set; }
-        public WoWPoint WaterPoint { get; private set; }
+        public Vector3 WaterPoint { get; private set; }
         private bool UseFishingGear { get; set; }
         private int? BaitId { get; set; }
 
@@ -365,7 +366,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
 
             // Have we a facing waterpoint or a PoolId and PoolGUID? No, then cancel this behavior!
-            if ((!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || !_PoolGUID.IsValid))
+            if ((!TestFishing && WaterPoint == Vector3.Zero && (PoolId == 0 || !_PoolGUID.IsValid))
                 || Me.Combat || Me.IsDead || Me.IsGhost)
             {
                 BehaviorDone();
@@ -373,7 +374,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
 
             if ((!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying)
-                && (TestFishing || (WaterPoint != WoWPoint.Empty
+                && (TestFishing || (WaterPoint != Vector3.Zero
                 || (PoolId != 0 && hasPoolFound && PoolFishingBuddy.saveLocation.Count > 0
                 && StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5
                 && !PoolFishingBuddy.looking4NewLoc))))
@@ -450,7 +451,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 await CommonCoroutines.StopMoving();
                 QBCLog.Info("Casting...");
 
-                if (WaterPoint != WoWPoint.Empty)
+                if (WaterPoint != Vector3.Zero)
                 {
                     StyxWoW.Me.SetFacing(WaterPoint);
                     await Coroutine.Sleep(200);
@@ -883,8 +884,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         private static Stopwatch s_movetopoolTimer = new Stopwatch();
         public static bool looking4NewLoc;
         private static WoWGameObject Pool { get { if (MrFishIt.hasPoolFound) { } return MrFishIt._PoolGUID.asWoWGameObject(); } }
-        static public List<WoWPoint> saveLocation = new List<WoWPoint>(100);
-        static public List<WoWPoint> badLocations = new List<WoWPoint>(100);
+        static public List<Vector3> saveLocation = new List<Vector3>(100);
+        static public List<Vector3> badLocations = new List<Vector3>(100);
         static public int newLocAttempts = 0;
 
         private static int s_maxNewLocAttempts = 5;
@@ -894,19 +895,19 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// <summary>
         /// fixed by BarryDurex
         /// </summary>
-        static public WoWPoint getSaveLocation(WoWPoint Location, int minDist, int maxDist, int traceStep, int traceStep2)
+        static public Vector3 getSaveLocation(Vector3 Location, int minDist, int maxDist, int traceStep, int traceStep2)
         {
             QBCLog.DeveloperInfo("Navigation: Looking for save Location around {0}.", Location);
 
-            WoWPoint point = WoWPoint.Empty;
+            Vector3 point = Vector3.Zero;
             float _PIx2 = 3.14159f * 2f;
 
             for (int i = 0, x = minDist; i < traceStep && x < maxDist && looking4NewLoc == true; i++)
             {
-                WoWPoint p = Location.RayCast((i * _PIx2) / traceStep, x);
+                Vector3 p = Location.RayCast((i * _PIx2) / traceStep, x);
 
                 p.Z = getGroundZ(p);
-                WoWPoint pLoS = p;
+                Vector3 pLoS = p;
                 pLoS.Z = p.Z + 0.5f;
 
                 if (p.Z != float.MinValue && !badLocations.Contains(p) && StyxWoW.Me.Location.Distance(p) > 1)
@@ -927,10 +928,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
             for (int i = 0, x = 10; i < traceStep2 && x < maxDist && looking4NewLoc == true; i++)
             {
-                WoWPoint p2 = point.RayCast((i * _PIx2) / traceStep2, x);
+                Vector3 p2 = point.RayCast((i * _PIx2) / traceStep2, x);
 
                 p2.Z = getGroundZ(p2);
-                WoWPoint pLoS = p2;
+                Vector3 pLoS = p2;
                 pLoS.Z = p2.Z + 0.5f;
 
                 if (p2.Z != float.MinValue && !badLocations.Contains(p2) && StyxWoW.Me.Location.Distance(p2) > 1)
@@ -952,10 +953,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
             QBCLog.Warning("{0} - No valid points returned by RayCast, blacklisting for 2 minutes.", DateTime.Now.ToLongTimeString());
             Blacklist.Add(Pool, BlacklistFlags.All, TimeSpan.FromMinutes(2));
-            return WoWPoint.Empty;
+            return Vector3.Zero;
         }
 
-        static public WoWPoint getSaveLocation(WoWPoint Location, int minDist, int maxDist, int traceStep)
+        static public Vector3 getSaveLocation(Vector3 Location, int minDist, int maxDist, int traceStep)
         {
             QBCLog.DeveloperInfo("Navigation: Looking for save Location around {0}.", Location);
 
@@ -963,10 +964,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
             for (int i = 0, x = minDist; i < traceStep && x < maxDist && looking4NewLoc == true; i++)
             {
-                WoWPoint p = Location.RayCast((i * _PIx2) / traceStep, x);
+                Vector3 p = Location.RayCast((i * _PIx2) / traceStep, x);
 
                 p.Z = getGroundZ(p);
-                WoWPoint pLoS = p;
+                Vector3 pLoS = p;
                 pLoS.Z = p.Z + 0.5f;
 
                 if (p.Z != float.MinValue && !badLocations.Contains(p) && StyxWoW.Me.Location.Distance(p) > 1)
@@ -990,13 +991,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             {
                 QBCLog.Warning("No valid points returned by RayCast, blacklisting for 2 minutes.");
                 Blacklist.Add(Pool, BlacklistFlags.All, TimeSpan.FromMinutes(2));
-                return WoWPoint.Empty;
+                return Vector3.Zero;
             }
             else
             {
                 QBCLog.Warning("No valid points returned by RayCast, can't navigate without user interaction. Stopping!");
                 TreeRoot.Stop();
-                return WoWPoint.Empty;
+                return Vector3.Zero;
             }
         }
 
@@ -1004,7 +1005,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// Credits to funkescott.
         /// </summary>
         /// <returns>Highest slope of surrounding terrain, returns 100 if the slope can't be determined</returns>
-        public static float getHighestSurroundingSlope(WoWPoint p)
+        public static float getHighestSurroundingSlope(Vector3 p)
         {
             QBCLog.DeveloperInfo("Navigation: Sloapcheck on Point: {0}", p);
             float _PIx2 = 3.14159f * 2f;
@@ -1012,7 +1013,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             float slope = 0;
             int traceStep = 15;
             float range = 0.5f;
-            WoWPoint p2;
+            Vector3 p2;
             for (int i = 0; i < traceStep; i++)
             {
                 p2 = p.RayCast((i * _PIx2) / traceStep, range);
@@ -1030,10 +1031,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// <summary>
         /// Credits to funkescott.
         /// </summary>
-        /// <param name="p1">from WoWPoint</param>
-        /// <param name="p2">to WoWPoint</param>
-        /// <returns>Return slope from WoWPoint to WoWPoint.</returns>
-        public static float getSlope(WoWPoint p1, WoWPoint p2)
+        /// <param name="p1">from Vector3</param>
+        /// <param name="p2">to Vector3</param>
+        /// <returns>Return slope from Vector3 to Vector3.</returns>
+        public static float getSlope(Vector3 p1, Vector3 p2)
         {
             float rise = p2.Z - p1.Z;
             float run = (float)Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
@@ -1045,13 +1046,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// Credits to exemplar.
         /// </summary>
         /// <returns>Z-Coordinates for PoolPoints so we don't jump into the water.</returns>
-        public static float getGroundZ(WoWPoint p)
+        public static float getGroundZ(Vector3 p)
         {
-            WoWPoint ground = WoWPoint.Empty;
+            Vector3 ground = Vector3.Zero;
 
-            GameWorld.TraceLine(new WoWPoint(p.X, p.Y, (p.Z + MaxCastRange)), new WoWPoint(p.X, p.Y, (p.Z - 0.8f)), TraceLineHitFlags.Collision, out ground);
+            GameWorld.TraceLine(new Vector3(p.X, p.Y, (p.Z + MaxCastRange)), new Vector3(p.X, p.Y, (p.Z - 0.8f)), TraceLineHitFlags.Collision, out ground);
 
-            if (ground != WoWPoint.Empty)
+            if (ground != Vector3.Zero)
             {
                 QBCLog.DeveloperInfo("Ground Z: {0}.", ground.Z);
                 return ground.Z;
@@ -1135,8 +1136,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 
                                 // Dismount
-                                new Decorator(ret => StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) <= 1.5 && Flightor.MountHelper.Mounted, //&& !StyxWoW.Me.IsMoving,
-                                                                                                                                                                                                     //new PrioritySelector(
+                                new Decorator(ret => StyxWoW.Me.Location.Distance(new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) <= 1.5 && Flightor.MountHelper.Mounted, //&& !StyxWoW.Me.IsMoving,
+                                                                                                                                                                                                    //new PrioritySelector(
 
                                             //new Decorator(ret => Helpers.CanWaterWalk && !Helpers.hasWaterWalking,
                                             new Sequence(
@@ -1146,7 +1147,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                                 new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Descend)),
                                                 new Action(ret => Flightor.MountHelper.Dismount()),
                                                 new Action(ret => WoWMovement.MoveStop()),
-                                                new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {0}, PoolPoint: {1}, Distance: {2}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
+                                                new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {0}, PoolPoint: {1}, Distance: {2}", StyxWoW.Me.Location, new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
                                                 new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
                                                 new SleepForLagDuration()
 
@@ -1156,7 +1157,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                 //        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Descend)),
                                 //        new Action(ret => Mount.Dismount()),
                                 //        new Action(ret => WoWMovement.MoveStop()),
-                                //        new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {1}, PoolPoint: {2}, Distance: {3}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
+                                //        new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {1}, PoolPoint: {2}, Distance: {3}", StyxWoW.Me.Location, new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
                                 //        new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
                                 //        new SleepForLagDuration()))
 
@@ -1177,16 +1178,14 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                 new Decorator(ret => (StyxWoW.Me.Location.Distance(saveLocation[0]) > 1 && StyxWoW.Me.Location.Distance(saveLocation[0]) <= 10 && !Flightor.MountHelper.Mounted && GameWorld.IsInLineOfSight(StyxWoW.Me.Location, saveLocation[0])) && !StyxWoW.Me.IsSwimming,
                                     new PrioritySelector(
 
-                                        // Mount if not mounted and Navigator is not able to generate a path
-                                        new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, saveLocation[0]),
-                                            new Action(ret => Flightor.MountHelper.MountUp())),
-
                                         new Sequence(
                                             new ActionSetActivity(ret => "Moving to new Location"),
                                             new Action(ret => QBCLog.DeveloperInfo("Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + saveLocation[0].Distance(StyxWoW.Me.Location) + " (Not Mounted)")),
                                             //new Action(ret => QBCLog.Info("{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Not Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location))),
                                             // Move
-                                            new Action(ret => Navigator.MoveTo(saveLocation[0]))
+                                            new Decorator(ret => !Navigator.MoveTo(saveLocation[0]).IsSuccessful(),
+                                                // Mount up to use branch below
+                                                new Action(ret => Flightor.MountHelper.MountUp()))
                                         )
                                 )),
 
@@ -1201,9 +1200,9 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         // Move
                                         new Sequence(
                                             new ActionSetActivity(ret => "[MrFishIt] Moving to Ground"),
-                                            new Action(ret => QBCLog.DeveloperInfo("Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) + " (Mounted)")),
+                                            new Action(ret => QBCLog.DeveloperInfo("Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + StyxWoW.Me.Location.Distance(new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) + " (Mounted)")),
                                             //new Action(ret => QBCLog.Info("{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location)),
-                                            new Action(ret => Flightor.MoveTo(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), true))
+                                            new Action(ret => Flightor.MoveTo(new Vector3(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), true))
                                         )
                                 ))
                             ))

@@ -201,6 +201,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Quest.QuestOrder;
@@ -229,7 +230,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
     [CustomBehaviorFileName(@"GetOutOfGroundEffectAndAuras")]
     public class GetOutOfGroundEffectAndAuras : CustomForcedBehavior
     {
-        public delegate WoWPoint LocationDelegate(object context);
+        public delegate Vector3 LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
         public delegate double RangeDelegate(object context);
 
@@ -259,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 // Parameters dealing with 'starting' the behavior...
                 StartEventGossipOptions = GetAttributeAsArray<int>("StartEventGossipOptions", false, new ConstrainTo.Domain<int>(1, 10), null, null);
                 StartNpcIds = GetNumberedAttributesAsArray<int>("StartNpcId", 0, ConstrainAs.MobId, null);
-                EventLocation = GetAttributeAsNullable<WoWPoint>("Event", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                EventLocation = GetAttributeAsNullable<Vector3>("Event", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 // Parameters dealing with avoidance during battle...
                 MoveAwayFromMobWithAuraIds = GetNumberedAttributesAsArray<int>("MoveAwayFromMobWithAuraId", 0, ConstrainAs.SpellId, null);
@@ -355,7 +356,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         // Variables for Attributes provided by caller
         private int[] StartEventGossipOptions { get; set; }
         private int[] StartNpcIds { get; set; }
-        private WoWPoint EventLocation { get; set; }
+        private Vector3 EventLocation { get; set; }
 
         private double AvoidMobMinRange { get; set; }
         private int[] MoveAwayFromMobWithAuraIds { get; set; }
@@ -400,8 +401,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private ConfigMemento _configMemento = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
-        private List<WoWPoint> _safespots = null;
-        private WoWPoint _toonStartingPosition = StyxWoW.Me.Location;
+        private List<Vector3> _safespots = null;
+        private Vector3 _toonStartingPosition = StyxWoW.Me.Location;
         #endregion
 
         #region Overrides of CustomForcedBehavior
@@ -507,7 +508,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
             // NB: We might be in combat with nothing to fight immediately after initiating the event.
             // Be aware of this when altering this behavior.
 
-            WoWPoint safeSpot = WoWPoint.Zero;
+            Vector3 safeSpot = Vector3.Zero;
 
             return new PrioritySelector(targetUnitsContext => FindAllTargets(),
 
@@ -687,7 +688,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                 new Decorator(context => IsEventComplete() || IsEventFailed(),
                                     new Action(context => { _behaviorState = BehaviorStateType.CheckDone; })),
 
-                                new Decorator(context => (EventLocation != WoWPoint.Empty) && !Navigator.AtLocation(EventLocation),
+                                new Decorator(context => (EventLocation != Vector3.Zero) && !Navigator.AtLocation(EventLocation),
                                     UtilityBehavior_MoveWithinRange(context => EventLocation, context => "to start location")),
 
                                 new ActionAlwaysFail()
@@ -862,10 +863,10 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         }
 
 
-        /// <returns>returns WoWPoint away from the TARGETUNIT</returns>
-        private WoWPoint PreferredSafespot(WoWUnit targetunit, bool isGroundEffectProblem = false)
+        /// <returns>returns Vector3 away from the TARGETUNIT</returns>
+        private Vector3 PreferredSafespot(WoWUnit targetunit, bool isGroundEffectProblem = false)
         {
-            IEnumerable<WoWPoint> preferredSafespotOrder;
+            IEnumerable<Vector3> preferredSafespotOrder;
 
             preferredSafespotOrder =
                 from spot in _safespots
@@ -891,8 +892,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         }
 
 
-        /// <returns>Returns a WoWPoint at DISTANCE behind UNIT</returns>
-        private WoWPoint SafespotBehindMob(WoWUnit unit, double distance)
+        /// <returns>Returns a Vector3 at DISTANCE behind UNIT</returns>
+        private Vector3 SafespotBehindMob(WoWUnit unit, double distance)
         {
             return unit.Location.RayCast(unit.Rotation + (float)Math.PI, (float)distance);
         }
@@ -978,7 +979,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
                 new Action(context =>
                 {
-                    WoWPoint destination = locationDelegate(context);
+                    Vector3 destination = locationDelegate(context);
                     MoveResult moveResult = MoveResult.Failed;
 
                     // Try to use Navigator to get there...
@@ -1039,26 +1040,26 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private bool ShouldMoveToSafespot<T>(
             T target,
             Func<T, bool> condition,
-            Func<T, WoWPoint> safeSpotSelector,
-            out WoWPoint safeSpot) where T : WoWObject
+            Func<T, Vector3> safeSpotSelector,
+            out Vector3 safeSpot) where T : WoWObject
         {
             if (target == null || !condition(target))
             {
-                safeSpot = WoWPoint.Zero;
+                safeSpot = Vector3.Zero;
                 return false;
             }
             safeSpot = safeSpotSelector(target);
             return true;
         }
 
-        private async Task<bool> UseSpeedEnhancements(WoWPoint destination)
+        private async Task<bool> UseSpeedEnhancements(Vector3 destination)
         {
             // Return if ActiveMover is not player
             if (WoWMovement.ActiveMover != StyxWoW.Me)
                 return false;
 
             var myLoc = StyxWoW.Me.Location;
-            var distToDestSqr = destination.DistanceSqr(myLoc);
+            var distToDestSqr = destination.DistanceSquared(myLoc);
             switch (StyxWoW.Me.Class)
             {
                 case WoWClass.Druid:
@@ -1151,10 +1152,10 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
         #region Path parsing
         // never returns null, but the returned Queue may be empty
-        public List<WoWPoint> ParsePath(string pathElementName)
+        public List<Vector3> ParsePath(string pathElementName)
         {
             var descendants = Element.Descendants(pathElementName).Elements();
-            List<WoWPoint> path = new List<WoWPoint>();
+            List<Vector3> path = new List<Vector3>();
 
             if (descendants.Count() > 0)
             {
@@ -1192,22 +1193,22 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
                     bool isParseProblem = false;
 
-                    double x = 0.0;
-                    if (!double.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
+                    float x;
+                    if (!float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
                     {
                         QBCLog.Error("Unable to parse X attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
-                    double y = 0.0;
-                    if (!double.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
+                    float y;
+                    if (!float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
                     {
                         QBCLog.Error("Unable to parse Y attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
-                    double z = 0.0;
-                    if (!double.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z))
+                    float z;
+                    if (!float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z))
                     {
                         QBCLog.Error("Unable to parse Z attribute for {0}", elementAsString);
                         isParseProblem = true;
@@ -1219,7 +1220,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                         continue;
                     }
 
-                    path.Add(new WoWPoint(x, y, z));
+                    path.Add(new Vector3(x, y, z));
                 }
             }
 

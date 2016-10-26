@@ -23,9 +23,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -45,7 +46,7 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
     [CustomBehaviorFileName(@"DefendObject")]
     public class DefendObject : CustomForcedBehavior
     {
-        private readonly WoWPoint _location;
+        private readonly Vector3 _location;
         private readonly uint[] _objectId;
         private readonly int _questId;
         private readonly QuestCompleteRequirement _questRequirementComplete;
@@ -65,7 +66,7 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
 
             try
             {
-                _location = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? _me.Location;
+                _location = GetAttributeAsNullable("", false, ConstrainAs.Vector3NonEmpty, null) ?? _me.Location;
                 _objectId = GetNumberedAttributesAsArray<uint>("ObjectId", 1, null, new[] { "NpcId", "MobId" }) ?? new uint[] { 27430 };
                 _questId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 _questRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;

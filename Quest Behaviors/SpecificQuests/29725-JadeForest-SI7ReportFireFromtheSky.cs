@@ -31,7 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -94,10 +94,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
 
         public static int[] MobIds = new[] { 55550, 55589 };
 
-        public static WoWPoint Shrine1Location = new WoWPoint(789.3542f, -1988.882f, 54.2512f);
-        public static WoWPoint Shrine2Location = new WoWPoint(963.9094, -1960.19, 67.762);
-        public static WoWPoint Shrine3Location = new WoWPoint(776.9325, -1788.328, 56.5228);
-        public static WoWPoint CampLocation = new WoWPoint(714.5405, -2103.443, 65.78586);
+        public static Vector3 Shrine1Location = new Vector3(789.3542f, -1988.882f, 54.2512f);
+        public static Vector3 Shrine2Location = new Vector3(963.9094f, -1960.19f, 67.762f);
+        public static Vector3 Shrine3Location = new Vector3(776.9325f, -1788.328f, 56.5228f);
+        public static Vector3 CampLocation = new Vector3(714.5405f, -2103.443f, 65.78586f);
 
         public static WaitTimer AimingTimer = new WaitTimer(TimeSpan.FromSeconds(2));
         public static WaitTimer WaitAtThridTimer = new WaitTimer(TimeSpan.FromSeconds(20));
@@ -155,7 +155,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                         new Decorator(ret => Sully == null,
                                             new Sequence(
                                                 new Action(ret => TreeRoot.StatusText = "Moving to Start Sully(Dwarf) Story"),
-                                                new Action(ret => Navigator.MoveTo(new WoWPoint(-157.5062f, -2659.278f, 1.069468f)))
+                                                new Action(ret => Navigator.MoveTo(new Vector3(-157.5062f, -2659.278f, 1.069468f)))
                                              )),
 
                                         new Decorator(ret => Sully != null && !Sully.WithinInteractRange,

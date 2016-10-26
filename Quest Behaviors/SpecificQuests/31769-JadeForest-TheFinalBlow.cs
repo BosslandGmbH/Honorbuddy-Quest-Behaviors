@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -46,8 +46,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFinalBlow
         private bool _isBehaviorDone;
 
         private Composite _root;
-        private WoWPoint _bounce = new WoWPoint(3158.702, -934.0057, 324.6955);
-        private WoWPoint _spot = new WoWPoint(3157.633, -894.3948, 324.696);
+        private Vector3 _bounce = new Vector3(3158.702f, -934.0057f, 324.6955f);
+        private Vector3 _spot = new Vector3(3157.633f, -894.3948f, 324.696f);
         private int _stage = 0;
 
         public TheFinalBlow(Dictionary<string, string> args) : base(args)
@@ -172,8 +172,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFinalBlow
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
-                _useMount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _useMount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
 
                 this.UpdateGoalText(QuestId);
             }
@@ -190,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFinalBlow
 
         public override void OnFinished()
         {
-            CharacterSettings.Instance.UseMount = _useMount;
+            CharacterSettings.Instance.UseGroundMount = _useMount;
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;

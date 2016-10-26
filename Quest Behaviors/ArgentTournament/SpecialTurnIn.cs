@@ -28,8 +28,8 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Database;
 using Styx.CommonBot.Frames;
+using Styx.CommonBot.ObjectDatabase;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -56,7 +56,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? MountSpot;
+                //Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? MountSpot;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;

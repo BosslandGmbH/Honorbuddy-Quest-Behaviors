@@ -11,6 +11,7 @@
 #region Usings
 
 using System;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Styx;
@@ -29,7 +30,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             try
             {
                 var height = GetAttributeAsNullable<double>("Height", false, new ConstrainTo.Domain<double>(0.0, 10000.0), null) ?? 1.0;
-                var location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                var location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 var name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
                 var radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
 
@@ -46,7 +47,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
-        public BlackspotType(WoWPoint location, string name = "", double radius = 10.0, double height = 1.0)
+        public BlackspotType(Vector3 location, string name = "", double radius = 10.0, double height = 1.0)
         {
             _blackspot = new Blackspot(location, (float)radius, (float)height, CreateBlackspotName(name, location));
         }
@@ -101,10 +102,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        private string CreateBlackspotName(string preferredName, WoWPoint wowPoint)
+        private string CreateBlackspotName(string preferredName, Vector3 Vector3)
         {
             if (string.IsNullOrEmpty(preferredName))
-                preferredName = string.Format("Blackspot({0})", wowPoint.ToString());
+                preferredName = string.Format("Blackspot({0})", Vector3.ToString());
 
             return QbcoreNamePrefix + preferredName;
         }

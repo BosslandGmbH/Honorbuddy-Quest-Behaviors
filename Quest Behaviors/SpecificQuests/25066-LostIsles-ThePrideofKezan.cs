@@ -119,7 +119,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePrideofKezan
                         new Action(r => WoWMovement.ClickToMove(_startAndEndPoint))
                     ),
                     new Decorator(r => Me.Location.Distance(_startAndEndPoint) <= 10,
-                                         new Action(delegate
+                                        new Action(delegate
                         {
                             TreeRoot.StatusText = "Finished!";
                             Lua.DoString("VehicleExit()");

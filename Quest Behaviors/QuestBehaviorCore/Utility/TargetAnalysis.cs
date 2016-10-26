@@ -18,6 +18,7 @@ using System.Text;
 using System.Xml.Linq;
 
 using Styx.CommonBot;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -104,7 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
             WoWObject wowObject,
             double collectionDistance)
         {
-            var objectCollectionDistance = wowObject.Location.CollectionDistance();
+            var objectCollectionDistance = wowObject.CollectionDistance();
             if (objectCollectionDistance > collectionDistance)
             { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", collectionDistance, objectCollectionDistance)); }
         }
@@ -124,26 +125,38 @@ namespace Honorbuddy.QuestBehaviorCore
                 return exclusionReasons;
             }
 
-            var blacklistEntry = Blacklist.GetEntry(wowObject.Guid);
-            if ((blacklistEntry != null) && ((blacklistEntry.Flags & interestingBlacklistFlags) != 0))
+            foreach (var blacklistEntry in Blacklist.GetEntries(wowObject.Guid))
             {
+                if ((blacklistEntry.Flags & interestingBlacklistFlags) == 0)
+                    continue;
+
                 var blacklistInfo = new List<string>();
 
                 var blacklistTimeRemaining = blacklistEntry.Started + blacklistEntry.Length - DateTime.Now;
                 blacklistInfo.Add(string.Format("Time({0}/{1})",
-                    Utility.PrettyTime(blacklistTimeRemaining),
-                    Utility.PrettyTime(blacklistEntry.Length)));
+                                                Utility.PrettyTime(blacklistTimeRemaining),
+                                                Utility.PrettyTime(blacklistEntry.Length)));
 
                 if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Combat))
-                { blacklistInfo.Add("ForCombat"); }
+                {
+                    blacklistInfo.Add("ForCombat");
+                }
                 if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Interact))
-                { blacklistInfo.Add("ForInteract"); }
+                {
+                    blacklistInfo.Add("ForInteract");
+                }
                 if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Loot))
-                { blacklistInfo.Add("ForLoot"); }
+                {
+                    blacklistInfo.Add("ForLoot");
+                }
                 if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Node))
-                { blacklistInfo.Add("ForNode"); }
+                {
+                    blacklistInfo.Add("ForNode");
+                }
                 if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Pull))
-                { blacklistInfo.Add("ForPull"); }
+                {
+                    blacklistInfo.Add("ForPull");
+                }
 
                 exclusionReasons.Add(string.Format("Blacklisted({0})", string.Join(",", blacklistInfo)));
             }

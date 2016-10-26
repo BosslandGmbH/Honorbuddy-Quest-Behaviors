@@ -103,6 +103,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
@@ -140,17 +141,22 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                     .Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
                     .ToArray();
 
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundCenter = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
 
                 // Tunables...
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 ImmediatelySwitchToHighestPriorityTarget = GetAttributeAsNullable<bool>("ImmediatelySwitchToHighestPriorityTarget", false, null, null) ?? true;
 
+                double? forcedTolerance = null;
+                if (MovementBy == MovementByType.FlightorPreferred)
+                    forcedTolerance = 3f;
+
                 // Hunting ground processing...
                 HuntingGrounds = HuntingGroundsType.GetOrCreate(
                     Element,
                     "HuntingGrounds",
-                    new WaypointType(HuntingGroundCenter, "hunting ground center"));
+                    new WaypointType(HuntingGroundCenter, "hunting ground center"),
+                    forcedTolerance);
 
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
@@ -168,10 +174,9 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             }
         }
 
-
         // Attributes provided by caller
         private HuntingGroundsType HuntingGrounds { get; set; }
-        private WoWPoint HuntingGroundCenter { get; set; }
+        private Vector3 HuntingGroundCenter { get; set; }
         private int[] MobIds { get; set; }
         private bool WaitForNpcs { get; set; }
         private bool ImmediatelySwitchToHighestPriorityTarget { get; set; }
@@ -293,6 +298,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                     new UtilityCoroutine.NoMobsAtCurrentWaypoint(
                         () => HuntingGrounds,
                         () => MovementBy,
+                        null,
                         () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
                         () =>
                             TargetExclusionAnalysis.Analyze(

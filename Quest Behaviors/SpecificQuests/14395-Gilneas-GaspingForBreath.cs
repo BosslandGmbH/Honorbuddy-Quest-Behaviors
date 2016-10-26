@@ -42,7 +42,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -85,7 +85,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                 // Tunables...
                 CombatMaxEngagementRangeDistance = 23.0;
                 NonCompeteDistance = 25.0;
-                PositionToMakeLandfall = new WoWPoint(-1897.101, 2520.762, 1.735498).FanOutRandom(5.0);
+                PositionToMakeLandfall = new Vector3(-1897.101f, 2520.762f, 1.735498f).FanOutRandom(5.0);
 
                 Blackspots = new List<Blackspot>()
                 {
@@ -94,8 +94,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
                 IgnoreDrowningWatchmenInTheseAreas = new List<Blackspot>()
                 {
-                    new Blackspot(new WoWPoint(-1916.865, 2559.767, -14.21182), 5.0f, 1.0f),
-                    new Blackspot(new WoWPoint(-1931.899, 2562.926, -19.15102), 5.0f, 1.0f)
+                    new Blackspot(new Vector3(-1916.865f, 2559.767f, -14.21182f), 5.0f, 1.0f),
+                    new Blackspot(new Vector3(-1931.899f, 2562.926f, -19.15102f), 5.0f, 1.0f)
                 };
 
                 // A collection of paths that will get us from shore near a Watchman in the water...
@@ -103,58 +103,58 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                 // much flotsam and jetsam in the water.
                 // NB: Paths are directional--the first point should be on shore, and the last point
                 // should be somewhere in the water.  Our algorithm will reverse the path when necessary.
-                Paths = new List<List<WoWPoint>>()
+                Paths = new List<List<Vector3>>()
                 {
 					// Path straight out
-					new List<WoWPoint>()
+					new List<Vector3>()
                     {
-                        new WoWPoint(-1898.565, 2526.652, 1.035018),
-                        new WoWPoint(-1905.135, 2532.711, -1.765509),
-                        new WoWPoint(-1920.694, 2534.667, -1.693366),
-                        new WoWPoint(-1936.677, 2536.928, -1.693366),
-                        new WoWPoint(-1951.854, 2541.426, -1.693366),
-                        new WoWPoint(-1974.511, 2548.637, -1.693366),
-                        new WoWPoint(-2001.689, 2551.984, -1.655865),
-                        new WoWPoint(-2022.086, 2549.928, -1.655865),
-                        new WoWPoint(-2042.27, 2546.034, -1.655865),
-                        new WoWPoint(-2059.579, 2542.695, -1.655865),
-                        new WoWPoint(-2074.083, 2539.897, -1.655865),
-                        new WoWPoint(-2086.656, 2535.151, -1.655865),
-                        new WoWPoint(-2100.172, 2529.053, -1.655865),
-                        new WoWPoint(-2120.214, 2520.011, -1.655865)
+                        new Vector3(-1898.565f, 2526.652f, 1.035018f),
+                        new Vector3(-1905.135f, 2532.711f, -1.765509f),
+                        new Vector3(-1920.694f, 2534.667f, -1.693366f),
+                        new Vector3(-1936.677f, 2536.928f, -1.693366f),
+                        new Vector3(-1951.854f, 2541.426f, -1.693366f),
+                        new Vector3(-1974.511f, 2548.637f, -1.693366f),
+                        new Vector3(-2001.689f, 2551.984f, -1.655865f),
+                        new Vector3(-2022.086f, 2549.928f, -1.655865f),
+                        new Vector3(-2042.27f, 2546.034f, -1.655865f),
+                        new Vector3(-2059.579f, 2542.695f, -1.655865f),
+                        new Vector3(-2074.083f, 2539.897f, -1.655865f),
+                        new Vector3(-2086.656f, 2535.151f, -1.655865f),
+                        new Vector3(-2100.172f, 2529.053f, -1.655865f),
+                        new Vector3(-2120.214f, 2520.011f, -1.655865f)
                     },
 
 					// Path to left
-					new List<WoWPoint>()
+					new List<Vector3>()
                     {
-                        new WoWPoint(-1917.676, 2512.804, 0.9624463),
-                        new WoWPoint(-1921.708, 2518.946, -1.56824),
-                        new WoWPoint(-1933.636, 2519.966, -1.708278),
-                        new WoWPoint(-1950.844, 2535.389, -1.633051),
-                        new WoWPoint(-1976.363, 2520.421, -1.633051),
-                        new WoWPoint(-1983.294, 2512.472, -1.633051),
-                        new WoWPoint(-1967.469, 2497.509, -1.633051)
+                        new Vector3(-1917.676f, 2512.804f, 0.9624463f),
+                        new Vector3(-1921.708f, 2518.946f, -1.56824f),
+                        new Vector3(-1933.636f, 2519.966f, -1.708278f),
+                        new Vector3(-1950.844f, 2535.389f, -1.633051f),
+                        new Vector3(-1976.363f, 2520.421f, -1.633051f),
+                        new Vector3(-1983.294f, 2512.472f, -1.633051f),
+                        new Vector3(-1967.469f, 2497.509f, -1.633051f)
                     },
 
 					// Path to right
-					new List<WoWPoint>()
+					new List<Vector3>()
                     {
-                        new WoWPoint(-1889.763, 2523.739, 1.452872),
-                        new WoWPoint(-1886.251, 2533.122, 1.710165),
-                        new WoWPoint(-1894.029, 2546.086, 1.341531),
-                        new WoWPoint(-1887.969, 2560.070, 1.207472),
-                        new WoWPoint(-1885.753, 2571.156, 1.337856),
-                        new WoWPoint(-1891.537, 2574.381, 1.792468),
-                        new WoWPoint(-1905.131, 2587.235, -1.833358),
-                        new WoWPoint(-1918.267, 2604.448, -1.675449),
-                        new WoWPoint(-1931.461, 2614.436, -1.675449),
-                        new WoWPoint(-1943.776, 2623.013, -1.675449),
-                        new WoWPoint(-1955.846, 2631.421, -1.675449),
-                        new WoWPoint(-1968.597, 2638.606, -1.675449),
-                        new WoWPoint(-1980.798, 2646.535, -1.675449),
-                        new WoWPoint(-1992.115, 2650.767, -1.675449),
-                        new WoWPoint(-2003.118, 2665.267, -1.675449),
-                        new WoWPoint(-2008.434, 2681.922, -1.675449),
+                        new Vector3(-1889.763f, 2523.739f, 1.452872f),
+                        new Vector3(-1886.251f, 2533.122f, 1.710165f),
+                        new Vector3(-1894.029f, 2546.086f, 1.341531f),
+                        new Vector3(-1887.969f, 2560.070f, 1.207472f),
+                        new Vector3(-1885.753f, 2571.156f, 1.337856f),
+                        new Vector3(-1891.537f, 2574.381f, 1.792468f),
+                        new Vector3(-1905.131f, 2587.235f, -1.833358f),
+                        new Vector3(-1918.267f, 2604.448f, -1.675449f),
+                        new Vector3(-1931.461f, 2614.436f, -1.675449f),
+                        new Vector3(-1943.776f, 2623.013f, -1.675449f),
+                        new Vector3(-1955.846f, 2631.421f, -1.675449f),
+                        new Vector3(-1968.597f, 2638.606f, -1.675449f),
+                        new Vector3(-1980.798f, 2646.535f, -1.675449f),
+                        new Vector3(-1992.115f, 2650.767f, -1.675449f),
+                        new Vector3(-2003.118f, 2665.267f, -1.675449f),
+                        new Vector3(-2008.434f, 2681.922f, -1.675449f),
                     }
                 };
 
@@ -189,15 +189,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         public IEnumerable<Blackspot> Blackspots { get; private set; }
         public int MobId_DrowningWatchman { get; private set; }
         public double NonCompeteDistance { get; private set; }
-        public List<List<WoWPoint>> Paths { get; private set; }
-        public WoWPoint PositionToMakeLandfall { get; private set; }
+        public List<List<Vector3>> Paths { get; private set; }
+        public Vector3 PositionToMakeLandfall { get; private set; }
 
 
         #endregion
 
 
         #region Private and Convenience variables
-        public delegate WoWPoint LocationDelegate(object context);
+        public delegate Vector3 LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
         public delegate double RangeDelegate(object context);
         public delegate string StringDelegate(object context);
@@ -213,7 +213,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         };
 
 
-        private Queue<WoWPoint> _currentPath = null;
+        private Queue<Vector3> _currentPath = null;
         private readonly TimeSpan _delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private WoWUnit SelectedTarget { get; set; }
@@ -410,7 +410,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                                 })),
 
                             // Move to drop off spot...
-                            new Decorator(context => Me.Location.Distance(PositionToMakeLandfall) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(PositionToMakeLandfall),
                                 new ActionRunCoroutine(
                                     context => UtilityCoroutine.MoveTo(
                                         PositionToMakeLandfall,
@@ -520,7 +520,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
         #region Helpers
 
-        private double CalculatePathCost(WoWPoint source, WoWPoint destination, IList<WoWPoint> path)
+        private double CalculatePathCost(Vector3 source, Vector3 destination, IList<Vector3> path)
         {
             double pathCost = 0.0;
             int pointCount = path.Count();
@@ -532,12 +532,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         }
 
 
-        private List<WoWPoint> ExtractPathSegment(WoWPoint source, WoWPoint destination, IList<WoWPoint> path)
+        private List<Vector3> ExtractPathSegment(Vector3 source, Vector3 destination, IList<Vector3> path)
         {
-            List<WoWPoint> pathSegment = new List<WoWPoint>(path);
+            List<Vector3> pathSegment = new List<Vector3>(path);
 
-            WoWPoint pointNearestSource = pathSegment.OrderBy(p => p.Distance(source)).FirstOrDefault();
-            WoWPoint pointNearestDestination = pathSegment.OrderBy(p => p.Distance(destination)).FirstOrDefault();
+            Vector3 pointNearestSource = pathSegment.OrderBy(p => p.Distance(source)).FirstOrDefault();
+            Vector3 pointNearestDestination = pathSegment.OrderBy(p => p.Distance(destination)).FirstOrDefault();
 
             if (pathSegment.IndexOf(pointNearestSource) > pathSegment.IndexOf(pointNearestDestination))
             { pathSegment.Reverse(); }
@@ -583,9 +583,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         }
 
 
-        private Queue<WoWPoint> FindPath(WoWPoint source, WoWPoint destination)
+        private Queue<Vector3> FindPath(Vector3 source, Vector3 destination)
         {
-            return new Queue<WoWPoint>(
+            return new Queue<Vector3>(
                (from path in Paths
                 let pathSegment = ExtractPathSegment(source, destination, path)
                 orderby CalculatePathCost(source, destination, pathSegment)
@@ -596,7 +596,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
 
         // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
+        private IEnumerable<WoWPlayer> FindPlayersNearby(Vector3 location, double radius)
         {
             return
                 from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
@@ -681,156 +681,4 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         // Cut-n-paste any PetControl helper methods you need, here...
         #endregion
     }
-
-
-    #region WoWPoint_Extensions
-    public static class WoWPoint_Extensions
-    {
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
-
-
-        public static WoWPoint Add(this WoWPoint wowPoint,
-                                    double x,
-                                    double y,
-                                    double z)
-        {
-            return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
-        }
-
-
-        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
-                                           double xyHeadingInRadians,
-                                           double distance,
-                                           double zModifier)
-        {
-            return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
-                                 (Math.Sin(xyHeadingInRadians) * distance),
-                                 zModifier));
-        }
-
-
-        // Finds another point near the destination.  Useful when toon is 'waiting' for something
-        // (e.g., boat, mob repops, etc). This allows multiple people running
-        // the same profile to not stand on top of each other while waiting for
-        // something.
-        public static WoWPoint FanOutRandom(this WoWPoint location,
-                                                double maxRadius)
-        {
-            const int CYLINDER_LINE_COUNT = 12;
-            const int MAX_TRIES = 50;
-            const double SAFE_DISTANCE_BUFFER = 1.75;
-
-            WoWPoint candidateDestination = location;
-            int tryCount;
-
-            // Most of the time we'll find a viable spot in less than 2 tries...
-            // However, if you're standing on a pier, or small platform a
-            // viable alternative may take 10-15 tries--its all up to the
-            // random number generator.
-            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
-            {
-                WoWPoint circlePoint;
-                bool[] hitResults;
-                WoWPoint[] hitPoints;
-                int index;
-                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
-
-                candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
-
-                // Build set of tracelines that can evaluate the candidate destination --
-                // We build a cone of lines with the cone's base at the destination's 'feet',
-                // and the cone's point at maxRadius over the destination's 'head'.  We also
-                // include the cone 'normal' as the first entry.
-
-                // 'Normal' vector
-                index = 0;
-                traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
-
-                // Cylinder vectors
-                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
-                {
-                    ++index;
-                    circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
-                    traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
-                }
-
-
-                // Evaluate the cylinder...
-                // The result for the 'normal' vector (first one) will be the location where the
-                // destination meets the ground.  Before this MassTrace, only the candidateDestination's
-                // X/Y values were valid.
-                GameWorld.MassTraceLine(traceLines.ToArray(),
-                                        TraceLineHitFlags.Collision,
-                                        out hitResults,
-                                        out hitPoints);
-
-                candidateDestination = hitPoints[0];    // From 'normal', Destination with valid Z coordinate
-
-
-                // Sanity check...
-                // We don't want to be standing right on the edge of a drop-off (say we'e on
-                // a plaform or pier).  If there is not solid ground all around us, we reject
-                // the candidate.  Our test for validity is that the walking distance must
-                // not be more than 20% greater than the straight-line distance to the point.
-                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
-                                                                      ? 1
-                                                                      : 0));
-
-                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
-                { continue; }
-
-                // If new destination is 'too close' to our current position, try again...
-                if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                { continue; }
-
-                break;
-            }
-
-            // If we exhausted our tries, just go with simple destination --
-            if (tryCount <= 0)
-            { candidateDestination = location; }
-
-            return (candidateDestination);
-        }
-
-
-        public static double SurfacePathDistance(this WoWPoint start,
-                                                    WoWPoint destination)
-        {
-            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-
-            // We define an invalid path to be of 'infinite' length
-            if (groundPath.Length <= 0)
-            { return (double.MaxValue); }
-
-
-            double pathDistance = start.Distance(groundPath[0]);
-
-            for (int i = 0; i < (groundPath.Length - 1); ++i)
-            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
-
-            return (pathDistance);
-        }
-
-
-        // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint WaterSurface(this WoWPoint location)
-        {
-            WoWPoint hitLocation;
-            bool hitResult;
-            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
-
-            hitResult = GameWorld.TraceLine(locationUpper,
-                                             locationLower,
-                                             TraceLineHitFlags.LiquidAll,
-                                             out hitLocation);
-
-            return (hitResult ? hitLocation : WoWPoint.Empty);
-        }
-    }
-    #endregion
 }

@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
@@ -62,7 +63,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 //MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] {"NpcID"})
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -85,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
 
 
         // Attributes provided by caller
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int QuestId = 25551;// 26581;//25551;
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }

@@ -27,7 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -59,7 +59,7 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 ObjectiveId = GetAttributeAsNullable<int>("ObjectiveId", false, ConstrainAs.RepeatCount, null) ?? 0;
                 MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
@@ -93,7 +93,7 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
         public int Distance { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
 
 
         // Private variables for internal state

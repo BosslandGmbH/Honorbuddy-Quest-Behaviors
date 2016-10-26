@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -125,7 +125,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Skullcrusher
         }
 
 
-        private WoWPoint _spot = new WoWPoint(-2739.832, -5000.674, -127.1305);
+        private Vector3 _spot = new Vector3(-2739.832f, -5000.674f, -127.1305f);
 
 
         public WoWUnit Ally
@@ -180,7 +180,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Skullcrusher
 
 
 
-        private bool insidecircle(WoWPoint Altar, int radius)
+        private bool insidecircle(Vector3 Altar, int radius)
         {
             return (Math.Pow((Me.Location.X - Altar.X), 2) + Math.Pow((Me.Location.Y - Altar.Y), 2) < Math.Pow(radius, 2));
         }

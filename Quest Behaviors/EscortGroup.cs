@@ -228,6 +228,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
@@ -235,7 +236,9 @@ using Bots.Quest.QuestOrder;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -245,12 +248,8 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Tripper.MeshMisc;
-using Tripper.Navigation;
-using Tripper.RecastManaged.Detour;
 
 using Action = Styx.TreeSharp.Action;
-using Vector3 = Tripper.Tools.Math.Vector3;
 
 // ReSharper disable CheckNamespace
 // ReSharper disable InconsistentNaming
@@ -288,7 +287,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 // Parameters dealing with when the task is 'done'...
                 EscortCompleteWhen = GetAttributeAsNullable<EscortCompleteWhenType>("EscortCompleteWhen", false, null, null) ?? EscortCompleteWhenType.QuestComplete;
-                EscortCompleteLocation = GetAttributeAsNullable<WoWPoint>("EscortComplete", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                EscortCompleteLocation = GetAttributeAsNullable<Vector3>("EscortComplete", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 // Tunables...
                 CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
@@ -313,7 +312,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                     IsAttributeProblem = true;
                 }
 
-                if ((EscortCompleteWhen == EscortCompleteWhenType.DestinationReached) && (EscortCompleteLocation == WoWPoint.Empty))
+                if ((EscortCompleteWhen == EscortCompleteWhenType.DestinationReached) && (EscortCompleteLocation == Vector3.Zero))
                 {
                     QBCLog.Error("With a EscortCompleteWhen argument of DestinationReached, you must specify EscortCompleteX/EscortCompleteY/EscortCompleteZ arguments");
                     IsAttributeProblem = true;
@@ -369,7 +368,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         public bool DebugReportUnitsOutOfRange { get; private set; }
 
         public EscortCompleteWhenType EscortCompleteWhen { get; private set; }
-        public WoWPoint EscortCompleteLocation { get; private set; }
+        public Vector3 EscortCompleteLocation { get; private set; }
         public double EscortCompleteMaxRange { get; private set; }
 
         public int EscortCountMax { get; private set; }
@@ -389,7 +388,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 
         #region Private and Convenience variables
-        private delegate WoWPoint LocationDelegate(object context);
+        private delegate Vector3 LocationDelegate(object context);
         private delegate string MessageDelegate(object context);
         private delegate WoWUnit WoWUnitDelegate(object context);
 
@@ -431,8 +430,8 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         private int _gossipOptionIndex;
         private readonly MovementState _movementStateForCombat = new MovementState();
         private readonly MovementState _movementStateForNonCombat = new MovementState();
-        private Queue<WoWPoint> _searchPath;
-        private WoWPoint _toonStartingPosition = WoWPoint.Empty;
+        private Queue<Vector3> _searchPath;
+        private Vector3 _toonStartingPosition = Vector3.Zero;
         #endregion
 
 
@@ -676,7 +675,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                         // may be closely spaced.  Its the fact that we're "searching" that determines we should mount,
                         // not the distance of movement involved.
                         new Decorator(context => !Me.Mounted && Mount.CanMount(),
-                            new Action(context => { Mount.MountUp(() => WoWPoint.Empty); })),
+                            new ActionRunCoroutine(context => CommonCoroutines.SummonGroundMount())),
 
                         // If we've reached the next point in the search path, and there is more than one, update path...
                         new Decorator(context => Navigator.AtLocation(_searchPath.Peek()) && _searchPath.Count() > 1,
@@ -877,11 +876,11 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         }
 
 
-        // Returns group center point or, WoWPoint.Empty if group is empty
-        private WoWPoint FindGroupCenterPoint(IEnumerable<WoWUnit> groupMembers)
+        // Returns group center point or, Vector3.Zero if group is empty
+        private Vector3 FindGroupCenterPoint(IEnumerable<WoWUnit> groupMembers)
         {
             var groupMemberCount = 0;
-            var centerPoint = new WoWPoint();
+            var centerPoint = new Vector3();
 
             foreach (var wowUnit in groupMembers)
             {
@@ -897,7 +896,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 centerPoint.Y /= groupMemberCount;
                 centerPoint.Z /= groupMemberCount;
 
-                FindWoWPointHeight(ref centerPoint);
+                FindVector3Height(ref centerPoint);
                 return centerPoint;
             }
 
@@ -918,7 +917,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 
         // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
+        private IEnumerable<WoWPlayer> FindPlayersNearby(Vector3 location, double radius)
         {
             return from player in ObjectManager.GetObjectsOfType<WoWPlayer>(true, false)
                    where Query.IsViable(player)
@@ -927,7 +926,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                    select player;
         }
 
-        private WoWPoint FindPositionToEscort(IEnumerable<WoWUnit> escortedUnitsEnumerable)
+        private Vector3 FindPositionToEscort(IEnumerable<WoWUnit> escortedUnitsEnumerable)
         {
             var escortedUnits = escortedUnitsEnumerable as IList<WoWUnit> ?? escortedUnitsEnumerable.ToList();
             var groupCenterPoint = FindGroupCenterPoint(escortedUnits);
@@ -937,21 +936,21 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
             var unitNearestGroupCenter = escortedUnits.OrderBy(u => u.Location.Distance(groupCenterPoint)).FirstOrDefault();
 
             if (unitNearestGroupCenter == null)
-                return WoWPoint.Empty;
+                return Vector3.Zero;
 
             var centerLocation = unitNearestGroupCenter.Location;
 
             var positionToEscort = centerLocation.RayCast((float)aggregateHeading, (float)EscortMaxFollowDistance);
 
             // set the 'positionToEscort' to 'hitPoint' if 'positionToEscort' is off the mesh, on another level or obstructed.
-            WoWPoint hitPoint;
+            Vector3 hitPoint;
             var meshIsObstructed = MeshTraceline(centerLocation, positionToEscort, out hitPoint);
             if (meshIsObstructed.HasValue && meshIsObstructed.Value)
                 positionToEscort = hitPoint;
 
-            // if FindWoWPointHeight returns false then no mesh was found at 'positionToEscort' location
+            // if FindVector3Height returns false then no mesh was found at 'positionToEscort' location
             // so the centerLocation is returned instead.
-            return !FindWoWPointHeight(ref positionToEscort)
+            return !FindVector3Height(ref positionToEscort)
                 ? centerLocation
                 : positionToEscort;
         }
@@ -992,15 +991,17 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         }
 
 
-        private bool FindWoWPointHeight(ref WoWPoint wowPoint)
+        private bool FindVector3Height(ref Vector3 Vector3)
         {
-            var heights = Navigator.FindHeights(wowPoint.X, wowPoint.Y);
-            if (heights == null || !heights.Any())
-                return false;
-            var tmpZ = wowPoint.Z;
-            // find the height that is nearest to current wowPoint.Z value
-            wowPoint.Z = heights.OrderBy(h => Math.Abs(h - tmpZ)).FirstOrDefault();
             return true;
+            // TODO: FindHeights. Rewrite callers of this to use mesh sampling instead.
+            //			var heights = Navigator.FindHeights(Vector3.X, Vector3.Y);
+            //			if (heights == null || !heights.Any())
+            //				return false;
+            //			var tmpZ = Vector3.Z;
+            //			// find the height that is nearest to current Vector3.Z value
+            //			Vector3.Z = heights.OrderBy(h => Math.Abs(h - tmpZ)).FirstOrDefault();
+            //			return true;
         }
 
 
@@ -1089,76 +1090,79 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         }
 
         /// <summary>
-        /// This casts a walkable ray on the surface of the mesh from <c>wowPointSrc</c> to <c>wowPointDest</c> and
+        /// This casts a walkable ray on the surface of the mesh from <c>Vector3Src</c> to <c>Vector3Dest</c> and
         /// return value indicates whether a wall (disjointed polygon edge) was encountered
         /// </summary>
-        /// <param name="wowPointSrc"></param>
-        /// <param name="wowPointDest"></param>
+        /// <param name="Vector3Src"></param>
+        /// <param name="Vector3Dest"></param>
         /// <param name="hitLocation">
-        /// The point where a wall (disjointed polygon edge) was encountered if any, otherwise WoWPoint.Empty.
+        /// The point where a wall (disjointed polygon edge) was encountered if any, otherwise Vector3.Zero.
         /// The hit calculation is done in 2d so the Z coord will not be accurate;
-        ///  It is an interpolation between <c>wowPointSrc</c>'s and <c>wowPointDest</c>'s Z coords
+        ///  It is an interpolation between <c>Vector3Src</c>'s and <c>Vector3Dest</c>'s Z coords
         /// </param>
-        /// <returns>Returns null if a result cannot be determined e.g <c>wowPointDest</c> is not on mesh,
+        /// <returns>Returns null if a result cannot be determined e.g <c>Vector3Dest</c> is not on mesh,
         ///  True if a wall (disjointed polygon edge) is encountered otherwise false</returns>
-        private static bool? MeshTraceline(WoWPoint wowPointSrc, WoWPoint wowPointDest, out WoWPoint hitLocation)
+        private static bool? MeshTraceline(Vector3 Vector3Src, Vector3 Vector3Dest, out Vector3 hitLocation)
         {
-            hitLocation = WoWPoint.Empty;
-            var meshNav = Navigator.NavigationProvider as MeshNavigator;
-            // 99.999999 % of the time Navigator.NavigationProvider will be a MeshNavigator type or subtype -
-            // but if it isn't then bail because another navigation system is being used.
-            if (meshNav == null)
-                return null;
-
-            var wowNav = meshNav.Nav;
-            var detourPointSrc = NavHelper.ToNav(wowPointSrc);
-            var detourPointDest = NavHelper.ToNav(wowPointDest);
-
-            // ensure tiles for start and end location are loaded. this does nothing if they're already loaded
-            wowNav.LoadTile(TileIdentifier.GetByPosition(wowPointSrc));
-            wowNav.LoadTile(TileIdentifier.GetByPosition(wowPointDest));
-
-            Vector3 nearestPolyPoint;
-            PolygonReference polyRef;
-            var status = wowNav.MeshQuery.FindNearestPolygon(
-                detourPointSrc,
-                wowNav.Extents,
-                wowNav.QueryFilter.InternalFilter,
-                out nearestPolyPoint,
-                out polyRef);
-            if (status.Failed || polyRef.Id == 0)
-                return null;
-
-            PolygonReference[] raycastPolys;
-            float rayHitDist;
-            Vector3 rayHitNorml;
-
-            //  normalized distance (0 to 1.0) if there was a hit, otherwise float.MaxValue.
-            status = wowNav.MeshQuery.Raycast(
-                polyRef,
-                detourPointSrc,
-                detourPointDest,
-                wowNav.QueryFilter.InternalFilter,
-                500,
-                out raycastPolys,
-                out rayHitDist,
-                out rayHitNorml);
-
-            if (status.Failed)
-                return null;
-
-            // check if there's a hit
-            if (rayHitDist < float.MaxValue)
-            {
-                // get wowPointSrc to wowPointDest vector
-                var startToEndOffset = wowPointDest - wowPointSrc;
-                // multiply segmentEndToNewPoint by rayHitDistance and add quanity to segmentEnd to get ray hit point.
-                // N.B. the Z coord will be an interpolation between wowPointSrc and wowPointDesc Z coords
-                // because the hit calculation is done in 2d
-                hitLocation = startToEndOffset * rayHitDist + wowPointSrc;
-                return true;
-            }
-            return false;
+#warning FIXME MeshTraceline
+            //TODO: MeshTraceline. Caller of this can use mesh sampling.
+            hitLocation = Vector3.Zero;
+            return null;
+            //			var meshNav = Navigator.NavigationProvider as MeshNavigator;
+            //			// 99.999999 % of the time Navigator.NavigationProvider will be a MeshNavigator type or subtype -
+            //			// but if it isn't then bail because another navigation system is being used.
+            //			if (meshNav == null)
+            //				return null;
+            //
+            //			var wowNav = meshNav.Nav;
+            //			var detourPointSrc = NavHelper.ToNav(Vector3Src);
+            //			var detourPointDest = NavHelper.ToNav(Vector3Dest);
+            //
+            //			// ensure tiles for start and end location are loaded. this does nothing if they're already loaded
+            //			wowNav.LoadTile(TileIdentifier.GetByPosition(Vector3Src));
+            //			wowNav.LoadTile(TileIdentifier.GetByPosition(Vector3Dest));
+            //
+            //			Vector3 nearestPolyPoint;
+            //			PolygonReference polyRef;
+            //			var status = wowNav.MeshQuery.FindNearestPolygon(
+            //				detourPointSrc,
+            //				wowNav.Extents,
+            //				wowNav.QueryFilter.InternalFilter,
+            //				out nearestPolyPoint,
+            //				out polyRef);
+            //			if (status.Failed || polyRef.Id == 0)
+            //				return null;
+            //
+            //			PolygonReference[] raycastPolys;
+            //			float rayHitDist;
+            //			Vector3 rayHitNorml;
+            //
+            //			//  normalized distance (0 to 1.0) if there was a hit, otherwise float.MaxValue.
+            //			status = wowNav.MeshQuery.Raycast(
+            //				polyRef,
+            //				detourPointSrc,
+            //				detourPointDest,
+            //				wowNav.QueryFilter.InternalFilter,
+            //				500,
+            //				out raycastPolys,
+            //				out rayHitDist,
+            //				out rayHitNorml);
+            //
+            //			if (status.Failed)
+            //				return null;
+            //
+            //			// check if there's a hit
+            //			if (rayHitDist < float.MaxValue)
+            //			{
+            //				// get Vector3Src to Vector3Dest vector
+            //				var startToEndOffset = Vector3Dest - Vector3Src;
+            //				// multiply segmentEndToNewPoint by rayHitDistance and add quanity to segmentEnd to get ray hit point.
+            //				// N.B. the Z coord will be an interpolation between Vector3Src and Vector3Desc Z coords
+            //				// because the hit calculation is done in 2d
+            //				hitLocation = startToEndOffset * rayHitDist + Vector3Src;
+            //				return true;
+            //			}
+            //			return false;
         }
 
 
@@ -1248,7 +1252,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).SafeName),
 
-                        new Mount.ActionLandAndDismount(),
+                        new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
 
                         // Interact with unit to open the Gossip dialog...
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
@@ -1295,7 +1299,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         }
 
 
-        private void Utility_RotatePath(Queue<WoWPoint> path)
+        private void Utility_RotatePath(Queue<Vector3> path)
         {
             var frontPoint = path.Dequeue();
             path.Enqueue(frontPoint);
@@ -1320,7 +1324,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                     BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill, QuestOrder.Instance.NavType);
                                     ((WoWUnit)targetContext).Target();
                                 }),
-                                new Mount.ActionLandAndDismount())),
+                                 new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())))),
                         new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
                             new PrioritySelector(
                                 // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
@@ -1448,10 +1452,10 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
         #region Path parsing
         // never returns null, but the returned Queue may be empty
-        private Queue<WoWPoint> ParsePath(string pathElementName)
+        private Queue<Vector3> ParsePath(string pathElementName)
         {
             var descendants = Element.Descendants(pathElementName).Elements();
-            var path = new Queue<WoWPoint>();
+            var path = new Queue<Vector3>();
 
             foreach (var element in descendants.Where(elem => elem.Name == "Hotspot"))
             {
@@ -1487,22 +1491,22 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 var isParseProblem = false;
 
-                double x;
-                if (!double.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
+                float x;
+                if (!float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
                 {
                     QBCLog.Error("Unable to parse X attribute for {0}", elementAsString);
                     isParseProblem = true;
                 }
 
-                double y;
-                if (!double.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
+                float y;
+                if (!float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
                 {
                     QBCLog.Error("Unable to parse Y attribute for {0}", elementAsString);
                     isParseProblem = true;
                 }
 
-                double z;
-                if (!double.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z))
+                float z;
+                if (!float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z))
                 {
                     QBCLog.Error("Unable to parse Z attribute for {0}", elementAsString);
                     isParseProblem = true;
@@ -1514,7 +1518,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                     continue;
                 }
 
-                path.Enqueue(new WoWPoint(x, y, z));
+                path.Enqueue(new Vector3(x, y, z));
             }
 
             return path;

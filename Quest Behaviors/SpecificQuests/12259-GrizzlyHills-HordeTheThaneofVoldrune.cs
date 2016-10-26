@@ -10,7 +10,7 @@
 //
 
 #region Summary and Documentation
-// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255)
+// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255) 
 // Code was taken from Shak
 #endregion
 
@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -47,9 +48,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
     [CustomBehaviorFileName(@"SpecificQuests\12259-GrizzlyHills-HordeTheThaneofVoldrune")]
     public class q12259 : CustomForcedBehavior
     {
-        private WoWPoint _endloc = new WoWPoint(2805.055, -2488.745, 47.76864);
+        private Vector3 _endloc = new Vector3(2805.055f, -2488.745f, 47.76864f);
 
-        private readonly WoWPoint _flamebringerLocation = new WoWPoint(2793.088, -2506.125, 47.61626);
+        private readonly Vector3 _flamebringerLocation = new Vector3(2793.088f, -2506.125f, 47.61626f);
         private bool _isDone;
         private Composite _root;
 
@@ -85,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                                        ctx => Query.IsInVehicle(),
                                        new PrioritySelector(
                                            new Decorator(
-                                               ctx => WoWMovement.ActiveMover.Location.DistanceSqr(_endloc) > 10 * 10,
+                                               ctx => WoWMovement.ActiveMover.Location.DistanceSquared(_endloc) > 10 * 10,
                                                new Action(ctx => Flightor.MoveTo(_endloc))),
                                            new Action(ctx => Lua.DoString("VehicleExit()")))),
                                    new Sequence(
@@ -120,7 +121,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                         new Action(ctx => GossipFrame.Instance.SelectGossipOption(0))));
         }
 
-        private Composite CreateBehavior_MoveTo(Func<object, WoWPoint> locationSelector)
+        private Composite CreateBehavior_MoveTo(Func<object, Vector3> locationSelector)
         {
             return
                 new PrioritySelector(
@@ -134,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
         {
             const uint torvaldErikssonId = 27377;
 
-            var movetoLocation = new WoWPoint(2939.321, -2536.72, 123.3394);
+            var movetoLocation = new Vector3(2939.321f, -2536.72f, 123.3394f);
             WoWUnit torvaldEriksson = null;
 
             return
@@ -144,7 +145,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                             ObjectManager.GetObjectsOfTypeFast<WoWUnit>().FirstOrDefault(u => u.Entry == torvaldErikssonId && u.IsAlive),
                     // move in position
                     new Decorator(
-                        ctx => WoWMovement.ActiveMover.Location.DistanceSqr(movetoLocation) > 5 * 5,
+                        ctx => WoWMovement.ActiveMover.Location.DistanceSquared(movetoLocation) > 5 * 5,
                         new Action(ctx => Flightor.MoveTo(movetoLocation))),
                     new Decorator(ctx => WoWMovement.ActiveMover.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
                     new Decorator(
@@ -154,7 +155,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                             new Decorator(
                                 ctx => WoWMovement.ActiveMover.CurrentTargetGuid != torvaldEriksson.Guid,
                                 new Action(ctx => torvaldEriksson.Target())),
-                            // face
+                            // face 
                             new Decorator(
                                 ctx => !WoWMovement.ActiveMover.IsSafelyFacing(torvaldEriksson, 30),
                                 new Action(ctx => torvaldEriksson.Face())),
@@ -163,8 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 
         private void AimAndFire(WoWUnit target)
         {
-            var v = target.Location - StyxWoW.Me.Location;
-            v.Normalize();
+            var v = Vector3.Normalize(target.Location - StyxWoW.Me.Location);
             Lua.DoString(
                 string.Format(
                     "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);",
@@ -179,8 +179,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
             QBCLog.BehaviorLoggingContext = this;
 
             QuestId = 12259;
-            Location = WoWPoint.Empty;
-            Endloc = WoWPoint.Empty;
+            Location = Vector3.Zero;
+            Endloc = Vector3.Zero;
             QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
             QuestRequirementInLog = QuestInLogRequirement.InLog;
         }
@@ -188,8 +188,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
         // DON'T EDIT THIS--it is auto-populated by Git
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
-        public WoWPoint Location { get; private set; }
-        public WoWPoint Endloc { get; private set; }
+        public Vector3 Location { get; private set; }
+        public Vector3 Endloc { get; private set; }
         public int QuestId { get; set; }
 
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }

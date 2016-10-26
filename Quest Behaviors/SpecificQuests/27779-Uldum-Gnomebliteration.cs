@@ -16,6 +16,7 @@
 #region Examples
 #endregion
 
+using System.Numerics;
 using Styx.CommonBot.Coroutines;
 
 #region Usings
@@ -138,8 +139,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
                         && (unit.HealthPercent >= 100)
                         && !Blacklist.Contains(unit, BlacklistFlags.Interact)
                     let loc = unit.Location
-                    where unit.Location.DistanceSqr(_badBomb) > 60 * 60
-                    orderby loc.DistanceSqr(myLoc)
+                    where unit.Location.DistanceSquared(_badBomb) > 60 * 60
+                    orderby loc.DistanceSquared(myLoc)
                     select unit)
                     .ToList();
             }
@@ -191,9 +192,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
 
         //<Vendor Name="Fusion Core" Entry="46750" Type="Repair" X="" />
 
-        private readonly WoWPoint _orbLoc = new WoWPoint(-10641.33, -2344.599, 144.8416);
+        private readonly Vector3 _orbLoc = new Vector3(-10641.33f, -2344.599f, 144.8416f);
         //<Vendor Name="Crazed Gnome" Entry="46384" Type="Repair" X="-10542.87" Y="-2411.554" Z="88.44117" />
-        private readonly WoWPoint _badBomb = new WoWPoint(-10561.68, -2429.371, 91.56037);
+        private readonly Vector3 _badBomb = new Vector3(-10561.68f, -2429.371f, 91.56037f);
 
 
         private WoWUnit Orb

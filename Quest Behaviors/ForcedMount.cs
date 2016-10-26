@@ -25,12 +25,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -99,13 +101,26 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             if (!Flightor.CanFly)
                 return false;
 
-            Flightor.MountHelper.MountUp();
+            if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || StyxWoW.Me.Level >= 58))
+            {
+                if (SpellManager.CanCast("Flight Form"))
+                { SpellManager.Cast("Flight Form"); }
+
+                else if (SpellManager.CanCast("Travel Form"))
+                { SpellManager.Cast("Travel Form"); }
+            }
+
+            else
+            {
+                Mount.FlyingMounts.First().CreatureSpell.Cast();
+                await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
+            }
 
             // Hop off the ground. Kthx
-            await Coroutine.Sleep(250);
+            await Coroutine.Sleep(2500);
             try
             {
-                Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
+                WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
                 await Coroutine.Sleep(250);
             }
             finally
@@ -121,7 +136,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             return new PrioritySelector(
                 new Decorator(
                     ret => MountType == ForcedMountType.Ground,
-                    new Action(ret => Mount.MountUp(() => WoWPoint.Zero))),
+                    new ActionRunCoroutine(ret => CommonCoroutines.SummonGroundMount())),
 
                 new Decorator(
                     ret => MountType == ForcedMountType.Water && Mount.UnderwaterMounts.Count != 0 && StyxWoW.Me.IsSwimming,

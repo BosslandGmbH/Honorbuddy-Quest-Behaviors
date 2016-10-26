@@ -44,6 +44,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
@@ -78,8 +79,8 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                 MobId_Objective1_DecrepitWatcher = 47385;   // http://wowhead.com/npc=47385
                 MobId_SchnottzSiegeTank = 47732;            // http://wowhead.com/npc=47732
                 MobId_SchnottzSiegeTankInstanced = 47743;   // http://wowhead.com/npc=47743
-                Location_VehicleStagingArea = new WoWPoint(-10697.07, 1106.809, 23.11283);
-                Location_ReturnToSchnottz = new WoWPoint(-10674.97, 933.8754, 26.32263);
+                Location_VehicleStagingArea = new Vector3(-10697.07f, 1106.809f, 23.11283f);
+                Location_ReturnToSchnottz = new Vector3(-10674.97f, 933.8754f, 26.32263f);
 
                 // Weapon allows TAU (i.e., 2*PI) horizontal rotation
                 WeaponAzimuthMax = 0.785;               // Use: /script print(VehicleAimGetAngle())
@@ -100,8 +101,8 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         }
 
         // Attributes provided by caller
-        private WoWPoint Location_VehicleStagingArea { get; set; }
-        private WoWPoint Location_ReturnToSchnottz { get; set; }
+        private Vector3 Location_VehicleStagingArea { get; set; }
+        private Vector3 Location_ReturnToSchnottz { get; set; }
         private int MobId_Objective1_DecrepitWatcher { get; set; }
         private int MobId_SchnottzSiegeTank { get; set; }
         private int MobId_SchnottzSiegeTankInstanced { get; set; }

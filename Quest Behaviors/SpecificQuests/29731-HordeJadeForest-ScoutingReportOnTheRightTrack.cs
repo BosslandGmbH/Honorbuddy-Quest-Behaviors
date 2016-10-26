@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -93,10 +93,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
 
         #region Overrides of CustomForcedBehavior
 
-        private static readonly WoWPoint s_spot = new WoWPoint(853.4566, -1950.396, 61.24099);
-        private static readonly WoWPoint s_bounce = new WoWPoint(884.9406, -1863.337, 62.95205);
+        private static readonly Vector3 s_spot = new Vector3(853.4566f, -1950.396f, 61.24099f);
+        private static readonly Vector3 s_bounce = new Vector3(884.9406f, -1863.337f, 62.95205f);
 
-        private CircularQueue<WoWPoint> _circularQueue = new CircularQueue<WoWPoint>() { s_spot, s_bounce };
+        private CircularQueue<Vector3> _circularQueue = new CircularQueue<Vector3>() { s_spot, s_bounce };
 
         private bool _mount;
 
@@ -108,7 +108,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
                     new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
+                        CharacterSettings.Instance.UseGroundMount = true;
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
@@ -181,7 +181,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
 
         public override void OnFinished()
         {
-            CharacterSettings.Instance.UseMount = _mount;
+            CharacterSettings.Instance.UseGroundMount = _mount;
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
@@ -200,8 +200,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                _mount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _mount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
                 Navigator.Clear();
 

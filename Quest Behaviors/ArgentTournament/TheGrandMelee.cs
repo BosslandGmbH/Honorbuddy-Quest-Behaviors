@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -54,7 +55,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? _mountSpot;
+                Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? _mountSpot;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
 
                 _enemy = GetAttributeAsArray<uint>("Enemys", false, new ConstrainTo.Domain<uint>(0, 100000), new[] { "Enemy" }, null);
@@ -117,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -177,9 +178,9 @@ namespace Styx.Bot.Quest_Behaviors
             return isMount && unit.NpcFlags == 0x1000000;
         }
 
-        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
-        private WoWPoint _mountSpot = new WoWPoint(8426.872, 711.7554, 547.294);
+        //Vector3 endspot = new Vector3(1076.7,455.7638,-44.20478);
+        // Vector3 spot = new Vector3(1109.848,462.9017,-45.03053);
+        private Vector3 _mountSpot = new Vector3(8426.872f, 711.7554f, 547.294f);
 
         private Composite GetNearMounts
         {
@@ -251,9 +252,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-
-
-
+        private Vector3 _cachedSideLoc;
         private async Task<bool> Fight()
         {
             if (!Me.Combat)
@@ -267,28 +266,14 @@ namespace Styx.Bot.Quest_Behaviors
                 Me.ClearTarget();
                 return true;
             }
-            //Me.CurrentTarget.Face();
-            //if (Me.CurrentTarget.Distance > 10)
-            //   Navigator.MoveTo(Me.CurrentTarget.Location);
 
-            //var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, -15f);
-            //var moveTo = WoWMathHelper.CalculatePointBehind(StyxWoW.Me.CurrentTarget.Location,Me.CurrentTarget.Rotation, -15f);
-            var moveTo = WoWMathHelper.CalculatePointAtSide(currentTarget.Location, Me.CurrentTarget.Rotation, 20f, false);
-            //var moveTo = WoWMathHelper.GetPointAt(Me.Location, 20,Me.Rotation,0);
-            if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
-            {
-                Navigator.MoveTo(moveTo);
-            }
-            /* if (Me.CurrentTarget.Distance < 10)
-			{
-				Navigator.PlayerMover.Move(
-					WoWMovement.MovementDirection.Backwards);
-			}
-			else
-			{
-				Navigator.PlayerMover.MoveStop();
-			}*/
+            // TODO: Find better side point. Rewrite to use mesh sampling instead.
+            Vector3 sideLoc = WoWMathHelper.CalculatePointAtSide(currentTarget.Location, Me.CurrentTarget.Rotation, 20f, false);
+            if (_cachedSideLoc == Vector3.Zero || Vector3.DistanceSquared(sideLoc, _cachedSideLoc) > 8 * 8)
+                _cachedSideLoc = sideLoc;
 
+            if (Navigator.MoveTo(_cachedSideLoc) == MoveResult.PathGenerationFailed)
+                _cachedSideLoc = Vector3.Zero;
 
             if (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 3))
             {

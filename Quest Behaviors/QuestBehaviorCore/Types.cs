@@ -11,7 +11,7 @@
 #region Usings
 
 using System;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 
 using Styx;
@@ -177,7 +177,7 @@ namespace Honorbuddy.QuestBehaviorCore
     public delegate NavType ProvideNavTypeDelegate(object context);
     public delegate WoWItem ProvideWoWItemDelegate(object context);
     public delegate WoWObject ProvideWoWObjectDelegate(object context);
-    public delegate WoWPoint ProvideWoWPointDelegate(object context);
+    public delegate Vector3 ProvideVector3Delegate(object context);
     public delegate WoWSpell ProvideWoWSpellDelegate(object context);
     public delegate WoWUnit ProvideWoWUnitDelegate(object context);
 

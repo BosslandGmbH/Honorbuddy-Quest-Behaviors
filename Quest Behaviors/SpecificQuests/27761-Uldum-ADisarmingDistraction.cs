@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -203,7 +203,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(BreakCombat, Mount, DoneYet, FindBomb, DeployHologram, UseAndGo)));
         }
 
-        private WoWPoint _badBomb = new WoWPoint(-10561.68, -2429.371, 91.56037);
+        private Vector3 _badBomb = new Vector3(-10561.68f, -2429.371f, 91.56037f);
 
         public override void OnFinished()
         {

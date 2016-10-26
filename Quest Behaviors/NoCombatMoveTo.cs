@@ -29,9 +29,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Bots.Grind;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -62,7 +64,7 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Destination = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
                 if (string.IsNullOrEmpty(DestinationName))
@@ -87,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
 
         // Attributes provided by caller
         public string DestinationName { get; private set; }
-        public WoWPoint Destination { get; private set; }
+        public Vector3 Destination { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }

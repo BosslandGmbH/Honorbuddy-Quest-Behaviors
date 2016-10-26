@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -80,42 +80,42 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int FlightSpot;
         public int State = 4;
         public Pair Target;
-        public WoWPoint[] FlightPath = new WoWPoint[]
+        public Vector3[] FlightPath = new Vector3[]
         {
-            new WoWPoint(0,0,0),
-            new WoWPoint(-9065.746, -178.7902, 186.2216),
-            new WoWPoint(-8767.904, -47.82138, 186.2216),
-            new WoWPoint(-8839.586, 94.10641, 186.2216),
-            new WoWPoint(-8977.347, 180.7038, 186.2216),
-            new WoWPoint(-9150.972, 66.71052, 186.2216)
+            new Vector3(0f,0f,0f),
+            new Vector3(-9065.746f, -178.7902f, 186.2216f),
+            new Vector3(-8767.904f, -47.82138f, 186.2216f),
+            new Vector3(-8839.586f, 94.10641f, 186.2216f),
+            new Vector3(-8977.347f, 180.7038f, 186.2216f),
+            new Vector3(-9150.972f, 66.71052f, 186.2216f)
         };
 
         public Pair[] SafeSpots = new Pair[]
         {
-            new Pair(new WoWPoint(-8865.017, -67.25845, 142.4352),
-                    new WoWPoint(-8879.103, -27.9558, 141.0528)),
-            new Pair(new WoWPoint(-8880.18, 100.8362, 142.3729),
-                    new WoWPoint(-8923.264, 81.26907, 141.0495)),
-            new Pair(new WoWPoint(-9009.845, 136.4343, 141.2677),
-                    new WoWPoint(-9020.673, 102.5993, 141.0485)),
-            new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
-                    new WoWPoint(-9050.942, 78.64673, 141.0491)),
-            new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
-                    new WoWPoint(-9058.617, 60.17788, 141.0492)),
-            new Pair(new WoWPoint(-9098.441, -107.1487, 142.0959),
-                    new WoWPoint(-9074.733, -81.41763, 141.049)),
-            new Pair(new WoWPoint(-8897.744, -86.20571, 142.4366),
-                    new WoWPoint(-8927.161, -55.22403, 141.0703)),
-            new Pair(new WoWPoint(-8867.855, -68.69208, 142.4369),
-                    new WoWPoint(-8878.626, -28.24805, 141.0537)),
-            new Pair(new WoWPoint(-8903.402, 116.398, 142.4555),
-                    new WoWPoint(-8913.154, 105.3958, 141.0488)),
-            new Pair(new WoWPoint(-8883.854, 100.8373, 141.4563),
-                    new WoWPoint(-8912.104, 82.27669, 141.0491))
+            new Pair(new Vector3(-8865.017f, -67.25845f, 142.4352f),
+                    new Vector3(-8879.103f, -27.9558f, 141.0528f)),
+            new Pair(new Vector3(-8880.18f, 100.8362f, 142.3729f),
+                    new Vector3(-8923.264f, 81.26907f, 141.0495f)),
+            new Pair(new Vector3(-9009.845f, 136.4343f, 141.2677f),
+                    new Vector3(-9020.673f, 102.5993f, 141.0485f)),
+            new Pair(new Vector3(-9055.021f, 111.2494f, 142.7882f),
+                    new Vector3(-9050.942f, 78.64673f, 141.0491f)),
+            new Pair(new Vector3(-9055.021f, 111.2494f, 142.7882f),
+                    new Vector3(-9058.617f, 60.17788f, 141.0492f)),
+            new Pair(new Vector3(-9098.441f, -107.1487f, 142.0959f),
+                    new Vector3(-9074.733f, -81.41763f, 141.049f)),
+            new Pair(new Vector3(-8897.744f, -86.20571f, 142.4366f),
+                    new Vector3(-8927.161f, -55.22403f, 141.0703f)),
+            new Pair(new Vector3(-8867.855f, -68.69208f, 142.4369f),
+                    new Vector3(-8878.626f, -28.24805f, 141.0537f)),
+            new Pair(new Vector3(-8903.402f, 116.398f, 142.4555f),
+                    new Vector3(-8913.154f, 105.3958f, 141.0488f)),
+            new Pair(new Vector3(-8883.854f, 100.8373f, 141.4563f),
+                    new Vector3(-8912.104f, 82.27669f, 141.0491f))
         };
 
 
@@ -133,9 +133,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
 
         public struct Pair
         {
-            public WoWPoint LandingSpot, BarrelSpot;
+            public Vector3 LandingSpot, BarrelSpot;
 
-            public Pair(WoWPoint l, WoWPoint b)
+            public Pair(Vector3 l, Vector3 b)
             {
                 LandingSpot = l;
                 BarrelSpot = b;
@@ -197,9 +197,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         {
             var myLoc = Me.Location;
             var query = from x in SafeSpots
-                        where myLoc.DistanceSqr(x.LandingSpot) < 60 * 60
+                        where myLoc.DistanceSquared(x.LandingSpot) < 60 * 60
                         let barrel = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(
-                            u => u.Entry == 207127 && u.Location.DistanceSqr(x.BarrelSpot) < u.InteractRangeSqr)
+                            u => u.Entry == 207127 && u.Location.DistanceSquared(x.BarrelSpot) < u.InteractRangeSqr)
                         where barrel != null
                         select x;
 

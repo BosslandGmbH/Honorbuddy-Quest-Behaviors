@@ -55,6 +55,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 
@@ -88,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
                 HasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
                 MobHasAuraId = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new[] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
@@ -163,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
         public double MaxRange { get; private set; }
         public int HasAuraId { get; private set; }
         public int ItemId { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int MobHasAuraId { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public int[] MobIds { get; private set; }

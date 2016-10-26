@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -52,7 +53,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -89,7 +90,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -163,9 +164,9 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
-        //WoWPoint MountSpot = new WoWPoint(8426.872,711.7554,547.294);
+        //Vector3 endspot = new Vector3(1076.7,455.7638,-44.20478);
+        // Vector3 spot = new Vector3(1109.848,462.9017,-45.03053);
+        //Vector3 MountSpot = new Vector3(8426.872,711.7554,547.294);
 
         private Composite GetNearMounts
         {
@@ -377,7 +378,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        private WoWPoint _area = new WoWPoint(6289.036, 2335.079, 482.9755);
+        private Vector3 _area = new Vector3(6289.036f, 2335.079f, 482.9755f);
         private Composite PickFight
         {
             get

@@ -22,11 +22,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using CommonBehaviors.Decorators;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -87,7 +88,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
 
         public static List<uint> StudentIDs = new List<uint> { 59839, 59840, 59843, 59841, 59842 };
 
-        public static List<WoWPoint> StudentPoints = new List<WoWPoint> { new WoWPoint(-252.1181f, 2333.618f, 136.896f), new WoWPoint(-428.7136f, 2309.584f, 133.6259f) };
+        public static List<Vector3> StudentPoints = new List<Vector3> { new Vector3(-252.1181f, 2333.618f, 136.896f), new Vector3(-428.7136f, 2309.584f, 133.6259f) };
         public bool AtFirstPoint = false;
 
 

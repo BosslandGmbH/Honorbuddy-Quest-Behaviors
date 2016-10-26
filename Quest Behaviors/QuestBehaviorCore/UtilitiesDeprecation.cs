@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Media;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -204,9 +205,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public static void BuildReplacementArg(
             List<Tuple<string, string>> replacementArgs,
-            WoWPoint sourceAttributeValue,
+            Vector3 sourceAttributeValue,
             string destAttributeBaseName,
-            WoWPoint destAttributeDefaultValue)
+            Vector3 destAttributeDefaultValue)
         {
             if (sourceAttributeValue != destAttributeDefaultValue)
             {

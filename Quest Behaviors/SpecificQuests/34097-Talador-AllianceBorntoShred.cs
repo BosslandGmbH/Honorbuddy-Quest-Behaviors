@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -42,9 +42,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
     public class BorntoShred : CustomForcedBehavior
     {
         public uint[] MobIds = new uint[] { 75943, 75944, 75945, 75946, 75947, 75948, 77066, };
-        private WoWPoint _startPoint = new WoWPoint(3384.808, 2071.451, 158.9176);
-        private WoWPoint _waitPoint = new WoWPoint(2895.472, 2250.659, 109.0454);
+
+        /* Changes
+         * 1. Made the _waitPoint location for combat inside Tuurem.
+         * 2. Made target selection in GetAttackTarget() conditional on being in Tuurem using _tuuremSubZoneId.
+             */
+        private Vector3 _startPoint = new Vector3(3384.808f, 2071.451f, 158.9176f);
+        //private Vector3 _waitPoint = new Vector3(2895.937f, 2250.185f, 105.1246f);
+        private Vector3 _waitPoint = new Vector3(2937.097f, 2279.195f, 113.0154f);
         private bool _isBehaviorDone;
+        private uint _tuuremSubZoneId = 6949;
 
         private Composite _root;
         private bool _useMount;
@@ -53,7 +60,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
 
         public override void OnFinished()
         {
-            CharacterSettings.Instance.UseMount = _useMount;
+            CharacterSettings.Instance.UseGroundMount = _useMount;
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
@@ -103,9 +110,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             {
                 var myLoc = Me.Location;
                 return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
-                        where MobIds.Contains(u.Entry) && !u.IsDead
+                        where MobIds.Contains(u.Entry) && !u.IsDead 
                         let loc = u.Location
-                        orderby loc.DistanceSqr(myLoc)
+                        orderby loc.DistanceSquared(myLoc)
                         select u).ToList();
             }
         }
@@ -132,7 +139,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 75721 && r.Location.DistanceSqr(_startPoint) < 30 * 30);
+                    .FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 75721 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
             }
         }
 
@@ -146,7 +153,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
                 new PrioritySelector(ctx => attackTarget = GetAttackTarget(),
                     new Decorator(ctx => attackTarget != null,
                         new PrioritySelector(
-                            new ActionFail(ctx => _stuckTimer.Reset()),
                             new ActionSetActivity("Moving to Attack"),
                             new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid,
                                 new ActionFail(ctx => attackTarget.Target())),
@@ -156,7 +162,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
                             // cast 'Death From Above' ability on targets outside of melee
                             new Decorator(
                                 ctx =>
-                                    IronShredder.Location.DistanceSqr(attackTarget.Location) > 10 * 10 && IronShredder.Location.DistanceSqr(attackTarget.Location) < 70 * 70 && DeathFromAboveTimer.IsFinished,
+                                    IronShredder.Location.DistanceSquared(attackTarget.Location) > 10 * 10 && IronShredder.Location.DistanceSquared(attackTarget.Location) < 70 * 70 && DeathFromAboveTimer.IsFinished,
                                 new Sequence(
                                     new Action(ctx => Lua.DoString("CastPetAction(2)")),
                                     new WaitContinue(2, ctx => StyxWoW.Me.CurrentPendingCursorSpell != null, new ActionAlwaysSucceed()),
@@ -165,37 +171,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
 
                             // cast 'Elecrostatic Distortion' ability on melee range target.
                             new Decorator(
-                                ctx => IronShredder.Location.DistanceSqr(attackTarget.Location) <= 25 * 25,
+                                ctx => IronShredder.Location.DistanceSquared(attackTarget.Location) <= 25 * 25,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ctx => IronShredder.Location.DistanceSqr(attackTarget.Location) <= 25 * 25 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
+                                        ctx => IronShredder.Location.DistanceSquared(attackTarget.Location) <= 25 * 25 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
                                         new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
                                     new Action(ctx => Lua.DoString("CastPetAction(1)")))),
-                            new Decorator(ctx => IronShredder.Location.DistanceSqr(attackTarget.Location) > 25 * 25,
+                            new Decorator(ctx => IronShredder.Location.DistanceSquared(attackTarget.Location) > 25 * 25,
                                 new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
                     new Decorator(
                         ctx => attackTarget == null,
                         new PrioritySelector(
                             new Decorator(
-                                ctx => IronShredder.Location.DistanceSqr(_waitPoint) > 10 * 10,
+                                ctx => IronShredder.Location.DistanceSquared(_waitPoint) > 10 * 10,
                                 new PrioritySelector(
-                                    // can't set path precision so I'll just handle it directly...
-                                    // the IronShredder takes wide turns so needs a higher path precision than normal
-                                    new Decorator(
-                                        ctx =>
-                                        {
-                                            var nav = Navigator.NavigationProvider as MeshNavigator;
-                                            if (nav == null)
-                                                return false;
-                                            if (nav.CurrentMovePath == null || nav.CurrentMovePath.Index >= nav.CurrentMovePath.Path.Points.Length)
-                                                return false;
-                                            WoWPoint point = nav.CurrentMovePath.Path.Points[nav.CurrentMovePath.Index];
-                                            return point.DistanceSqr(IronShredder.Location) < 6 * 6;
-                                        },
-                                        new Action(ctx => ((MeshNavigator)Navigator.NavigationProvider).CurrentMovePath.Index++)),
-
-                                    CreateBehavior_Antistuck(),
-
                                     new Action(ctx => Navigator.MoveTo(_waitPoint)))),
                             new ActionSetActivity("No viable targets, waiting."))),
                     new ActionAlwaysSucceed()));
@@ -215,6 +204,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
 
         private WoWUnit GetAttackTarget()
         {
+            if (Me.SubZoneId != _tuuremSubZoneId)
+            {
+                return null;
+            }
+
             var target = Me.CurrentTarget;
             if (target != null && target.IsHostile && target.Attackable && target.IsAlive && target.DistanceSqr < 25 * 25)
             {
@@ -233,6 +227,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             {
                 return nearestHostileAttackingPlayer;
             }
+
             return GromKars.FirstOrDefault();
         }
 
@@ -242,8 +237,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
-                _useMount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _useMount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
 
                 this.UpdateGoalText(QuestId);
             }
@@ -259,65 +254,5 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
                         CreateBehavior_GetIn(),
                         CreateBehavior_KillMantid())));
         }
-
-        #region StuckHandler
-
-        private readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
-
-        protected Composite CreateBehavior_Antistuck()
-        {
-            var prevPosition = WoWPoint.Empty;
-            WoWPoint myLoc = WoWPoint.Empty;
-            var moveDirection = WoWMovement.MovementDirection.None;
-
-            return new PrioritySelector(
-                new Decorator(
-                    ctx => _stuckTimer.IsFinished,
-                    new Sequence(
-                        ctx => myLoc = WoWMovement.ActiveMover.Location,
-                        // checks if stuck
-                        new DecoratorContinue(
-                            ctx => myLoc.DistanceSqr(prevPosition) < 3 * 3,
-                            new Sequence(
-                                        ctx => moveDirection = GetRandomMovementDirection(),
-                                        new Action(ctx => QBCLog.Debug("Stuck. Movement Directions: {0}", moveDirection)),
-                                        new Action(ctx => WoWMovement.Move(moveDirection)),
-                                        new WaitContinue(2, ctx => false, new ActionAlwaysSucceed()),
-                                        new Action(ctx => WoWMovement.MoveStop(moveDirection)))),
-
-                        new Action(ctx => prevPosition = myLoc),
-                        new Action(ctx => _stuckTimer.Reset()))));
-        }
-
-        private WoWMovement.MovementDirection GetRandomMovementDirection()
-        {
-            // randomly move left or ritht
-            WoWMovement.MovementDirection ret = StyxWoW.Random.Next(2) == 0
-                ? WoWMovement.MovementDirection.StrafeLeft
-                : WoWMovement.MovementDirection.StrafeRight;
-
-            // randomly choose to go diagonal backwords + left or right
-            if (StyxWoW.Random.Next(2) == 0)
-                ret |= WoWMovement.MovementDirection.Backwards;
-
-            // randomly choose to jump (or descend if flying or swimming)
-            if (StyxWoW.Random.Next(2) == 0)
-            {
-                var activeMover = WoWMovement.ActiveMover;
-                if (activeMover.IsFlying || activeMover.IsSwimming)
-                {
-                    ret |= StyxWoW.Random.Next(2) == 0
-                        ? WoWMovement.MovementDirection.JumpAscend
-                        : WoWMovement.MovementDirection.Descend;
-                }
-                else
-                {
-                    ret |= WoWMovement.MovementDirection.JumpAscend;
-                }
-            }
-            return ret;
-        }
-        #endregion
-
     }
 }

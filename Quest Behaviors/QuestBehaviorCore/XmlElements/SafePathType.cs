@@ -13,9 +13,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Styx;
+using Styx.Common;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -159,10 +161,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // 11Apr2013-04:42UTC chinajade
-        public static SafePathType GetOrCreate(XElement parentElement, string elementName, double defaultEgressDistance, WoWPoint? safespotLocation = null)
+        public static SafePathType GetOrCreate(XElement parentElement, string elementName, double defaultEgressDistance, Vector3? safespotLocation = null)
         {
             if (safespotLocation.HasValue
-                && ((safespotLocation.Value == WoWPoint.Empty) || safespotLocation.Value == WoWPoint.Zero))
+                && ((safespotLocation.Value == Vector3.Zero) || safespotLocation.Value == Vector3.Zero))
             {
                 safespotLocation = null;
             }

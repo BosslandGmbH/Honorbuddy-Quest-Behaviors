@@ -22,12 +22,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -84,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         private const int MobId_ExitPole = 57626;
         private const int MobId_TushuiMonk = 55019;
         private const int MobId_TushuiMonk2 = 65468;
-        private readonly WoWPoint _startingSpot = new WoWPoint(966.1218, 3284.928, 126.7932);
+        private readonly Vector3 _startingSpot = new Vector3(966.1218f, 3284.928f, 126.7932f);
 
         private WoWUnit SelectedMonk { get; set; }
         #endregion
@@ -262,7 +264,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                                (from pole in FindPoles()
                                 where
                                     pole.WithinInteractRange
-                                orderby pole.Location.DistanceSqr(SelectedMonk.Location)
+                                orderby pole.Location.DistanceSquared(SelectedMonk.Location)
                                 select pole)
                                 .FirstOrDefault();
 
@@ -275,7 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                             {
                                 bestPole.Interact(true);
                                 // Reset the stuck handler so it doesn't false positive...
-                                Navigator.NavigationProvider.StuckHandler.Reset();
+                                Navigator.NavigationProvider.ClearStuckInfo();
                             }
                         })))
             );

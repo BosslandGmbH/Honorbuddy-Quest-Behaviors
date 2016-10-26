@@ -50,8 +50,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         // DON'T EDIT THIS--it is auto-populated by Git
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
-
-        private bool _inserted = false;
         private bool _state;
 
         public override bool IsDone { get { return true; } }
@@ -100,8 +98,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 {
                     QBCLog.Info("Insert was requested, but was already present");
                 }
-
-                _inserted = true;
             }
 
             else
@@ -116,8 +112,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 {
                     QBCLog.Info("Remove was requested, but hook was not present");
                 }
-
-                _inserted = false;
             }
         }
     }

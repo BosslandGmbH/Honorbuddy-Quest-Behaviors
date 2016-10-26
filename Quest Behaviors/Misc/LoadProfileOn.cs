@@ -56,9 +56,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -136,7 +137,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         private String NewRemoteProfilePath { get { return (Path.Combine(RemotePath, ProfileName)); } }
-        public WoWPoint MyHotSpot = WoWPoint.Empty;
+        public Vector3 MyHotSpot = Vector3.Zero;
         #endregion
 
         #region Methods
@@ -196,7 +197,7 @@ namespace Styx.Bot.Quest_Behaviors
                     QBCLog.Info("Can't scan party member, assuming member is too far away");
                     return false;
                 }
-                if (p.Guid != Me.Guid && WoWMovement.CalculatePointFrom(p.Location, 0).DistanceSqr(Me.Location) > p.InteractRange)
+                if (p.Guid != Me.Guid && WoWMovement.CalculatePointFrom(p.Location, 0).DistanceSquared(Me.Location) > p.InteractRange)
                 {
                     return false;
                 }
@@ -265,7 +266,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             #region MyHotSpot
                     // Store our current location.
-                    new Decorator(context => MyHotSpot == WoWPoint.Empty,
+                    new Decorator(context => MyHotSpot == Vector3.Zero,
                         new Sequence(
                             new DecoratorContinue(context => Me.IsMoving,
                                 new WaitContinue(TimeSpan.FromMilliseconds(2000), context => false, new ActionAlwaysSucceed())
@@ -305,12 +306,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Sequence(
                                     new DecoratorContinue(context => !Navigator.AtLocation(MyHotSpot),
                                         new Sequence(
-                                            new DecoratorContinue(context => Navigator.CanNavigateFully(Me.Location, MyHotSpot),
-                                                new Action(context => Navigator.MoveTo(MyHotSpot))
-                                            ),
-                                            new DecoratorContinue(context => !Navigator.CanNavigateFully(Me.Location, MyHotSpot),
-                                                new Action(context => Flightor.MoveTo(MyHotSpot))
-                                            )
+                                            new Action(context => Navigator.MoveTo(MyHotSpot))
                                         )
                                     ),
                                     new WaitContinue(TimeSpan.FromMilliseconds(300), context => false, new ActionAlwaysSucceed())

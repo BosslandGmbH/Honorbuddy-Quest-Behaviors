@@ -15,10 +15,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Xml;
 using System.Xml.Linq;
 using Bots.Quest.QuestOrder;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
@@ -117,12 +119,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 : string.Format("MobId({0})", wowObjectId);
         }
 
-        public static WoWPoint GetPointToGainDistance(WoWObject target, double minDistanceNeeded)
+        public static Vector3 GetPointToGainDistance(WoWObject target, double minDistanceNeeded)
         {
-            var minDistance = (float)(minDistanceNeeded + /*epsilon*/(2 * Navigator.PathPrecision));
+            var minDistance = (float)minDistanceNeeded;
             var myLocation = Me.Location;
 
-            Func<WoWObject, WoWPoint, bool> isPointViable = (selectedTarget, potentialDestination) =>
+            Func<WoWObject, Vector3, bool> isPointViable = (selectedTarget, potentialDestination) =>
             {
                 var targetLocation = selectedTarget.Location;
 
@@ -150,8 +152,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         where
                             wowObject.IsValid
                             && isPointViable(target, wowObject.Location)
-                        orderby
-                            myLocation.PathTraversalCost(wowObject.Location)
+                        orderby wowObject.PathTraversalCost()
                         select wowObject)
                         .FirstOrDefault();
                 }
@@ -165,7 +166,40 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return s_gainDistancePoint;
         }
-        private static WoWPoint s_gainDistancePoint;
+        private static Vector3 s_gainDistancePoint;
+
+        public static TimeSpan MaximumTraversalTime(double distanceToCover,
+                                                    double factorOfSafety = 1.0,
+                                                    TimeSpan? lowerLimitOnMaxTime = null,
+                                                    TimeSpan? upperLimitOnMaxTime = null)
+        {
+            lowerLimitOnMaxTime = lowerLimitOnMaxTime ?? TimeSpan.Zero;
+
+            var isFlying = WoWMovement.ActiveMover.IsFlying;
+            var isSwimming = WoWMovement.ActiveMover.IsSwimming;
+
+            // these speeds have been verified.
+            double myMovementSpeed =
+                isSwimming ? StyxWoW.Me.MovementInfo.SwimmingForwardSpeed
+                : isFlying ? StyxWoW.Me.MovementInfo.FlyingForwardSpeed
+                : StyxWoW.Me.MovementInfo.ForwardSpeed;
+
+            double timeToDestination = distanceToCover / myMovementSpeed;
+
+            timeToDestination *= factorOfSafety;
+
+            // Impose hard lower limit...
+            timeToDestination = Math.Max(timeToDestination, lowerLimitOnMaxTime.Value.TotalSeconds);
+
+            // Impose upper limit on the maximum time to reach the destination...
+            // NB: We can get times that are effectively 'infinite' in situations where the Navigator
+            // was unable to calculate a path to the target.  This puts an upper limit on such
+            // bogus values.
+            if (upperLimitOnMaxTime.HasValue)
+                timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime.Value.TotalSeconds);
+
+            return (TimeSpan.FromSeconds(timeToDestination));
+        }
 
 
         // 19Apr2013-05:58UTC chinajade

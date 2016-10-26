@@ -37,12 +37,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -89,12 +90,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 ObjectId_CrocEggs = 206112;
 
                 // Tunables...
-                BattlefieldCenterPoint = new WoWPoint(-11450.08, -1183.458, -2.641859);
+                BattlefieldCenterPoint = new Vector3(-11450.08f, -1183.458f, -2.641859f);
                 BattlefieldRadius = 50.0;
                 PoolRadius = 13.0;
 
                 // BattlefieldChillPoint is where we go sit while waiting for competition to clear...
-                BattlefieldWaitingArea = FanOutRandom(new WoWPoint(-11456.44, -1195.402, -2.641717), 10.0);
+                BattlefieldWaitingArea = FanOutRandom(new Vector3(-11456.44f, -1195.402f, -2.641717f), 10.0);
                 CombatMaxEngagementRangeDistance = 23.0;
                 CrocEggAvoidanceDistance = 6.0;
 
@@ -118,8 +119,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
 
         // Variables for Attributes provided by caller
-        private WoWPoint BattlefieldCenterPoint { get; set; }
-        private WoWPoint BattlefieldWaitingArea { get; set; }
+        private Vector3 BattlefieldCenterPoint { get; set; }
+        private Vector3 BattlefieldWaitingArea { get; set; }
         private double BattlefieldRadius { get; set; }
         private double CombatMaxEngagementRangeDistance { get; set; }
         private double CrocEggAvoidanceDistance { get; set; }
@@ -288,7 +289,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.UseMount = false;
+                CharacterSettings.Instance.UseGroundMount = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
 
                 _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
@@ -362,7 +363,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                                     {
                                         float avoidDistance = (float)(CrocEggAvoidanceDistance + 2.0f);
                                         float heading = WoWMathHelper.CalculateNeededFacing(SelectedTarget.Location, PreferredCrocEgg.Location);
-                                        WoWPoint destination = PreferredCrocEgg.Location.RayCast(heading, avoidDistance);
+                                        Vector3 destination = PreferredCrocEgg.Location.RayCast(heading, avoidDistance);
 
                                         if (!Navigator.AtLocation(destination))
                                         {
@@ -423,7 +424,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                             QBCLog.Info("Finished");
                         })),
 
-                    new Mount.ActionLandAndDismount(),
+                    new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
 
                     // If Young Crocolisks are attacking, jump up and down...
                     // NB: If we started jumping during combat, we might need to turn it off
@@ -696,7 +697,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         }
 
 
-        private MoveResult MoveWithinDangerousArea(WoWPoint destination)
+        private MoveResult MoveWithinDangerousArea(Vector3 destination)
         {
             DefinedArea nearestDangerousArea =
                (from area in FindDangerousAreas()
@@ -795,15 +796,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         public interface DefinedArea
         {
             double DangerScore();
-            double Distance(WoWPoint referencePoint);
-            WoWPoint FindNavigationPoint(WoWPoint currentLocation, WoWPoint destination);
-            bool IsInsideArea(WoWPoint currentLocation);
-            bool WillPathThroughArea(WoWPoint start, WoWPoint destination);
+            double Distance(Vector3 referencePoint);
+            Vector3 FindNavigationPoint(Vector3 currentLocation, Vector3 destination);
+            bool IsInsideArea(Vector3 currentLocation);
+            bool WillPathThroughArea(Vector3 start, Vector3 destination);
         }
 
         private class DefinedArea_Circle : DefinedArea
         {
-            public DefinedArea_Circle(ThePitOfScales behavior, WoWPoint center, double radius)
+            public DefinedArea_Circle(ThePitOfScales behavior, Vector3 center, double radius)
             {
                 _behavior = behavior;
                 CenterPoint = center;
@@ -812,7 +813,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 _navPointsCounterclockwise = FindNavPointsCounterclockwise();
             }
 
-            public WoWPoint CenterPoint { get; private set; }
+            public Vector3 CenterPoint { get; private set; }
             public double Radius { get; private set; }
 
 
@@ -823,7 +824,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             private const int NavPointCount = 16;
 
             private ThePitOfScales _behavior;
-            private IList<Tuple<WoWPoint, double>> _navPointsCounterclockwise;
+            private IList<Tuple<Vector3, double>> _navPointsCounterclockwise;
 
 
             public double DangerScore()
@@ -832,20 +833,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
 
 
-            public double Distance(WoWPoint referencePoint)
+            public double Distance(Vector3 referencePoint)
             {
                 return CenterPoint.Distance(referencePoint);
             }
 
 
-            public WoWPoint FindNavigationPoint(WoWPoint currentLocation, WoWPoint destination)
+            public Vector3 FindNavigationPoint(Vector3 currentLocation, Vector3 destination)
             {
                 // If toon has managed to get inside the area, force him out the quickest way possible...
                 if (IsInsideArea(currentLocation))
                 {
                     QBCLog.Warning("Immediately moving out of dangerous (Croc Egg) area");
 
-                    WoWPoint nearestSafeNavPoint =
+                    Vector3 nearestSafeNavPoint =
                        (from tuple in _navPointsCounterclockwise
                         let point = tuple.Item1
                         let traversalCost = tuple.Item2
@@ -864,7 +865,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 // If destination point is inside the area, substitute closest viable navigation point...
                 if (CenterPoint.Distance(destination) <= Radius)
                 {
-                    IEnumerable<WoWPoint> newLocalDestinations =
+                    IEnumerable<Vector3> newLocalDestinations =
                         from tuple in _navPointsCounterclockwise
                         let point = tuple.Item1
                         let traversalCost = tuple.Item2
@@ -882,14 +883,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
                 // If toon is too far away from the area to warrant navigational help,
                 // send him to his destination unimpeded...
-                if (currentLocation.Distance(CenterPoint) > (2 * Radius + (3 * Navigator.PathPrecision)))
+                if (currentLocation.Distance(CenterPoint) > (2 * Radius + 5))
                 { return destination; }
 
                 // NB: The algorithm must consider solutions involving local-minima.
                 // For instance, one quarter of the circle may be non-navigable due to obstructions,
                 // and we must send the toon around 3/4ths of the circle to stay out of the area.
-                Tuple<WoWPoint, double> traversalClockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, false);
-                Tuple<WoWPoint, double> traversalCounterclockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, true);
+                Tuple<Vector3, double> traversalClockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, false);
+                Tuple<Vector3, double> traversalCounterclockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, true);
 
                 return (traversalClockwise.Item2 < traversalCounterclockwise.Item2)  // compare path costs
                     ? traversalClockwise.Item1
@@ -897,31 +898,33 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
 
 
-            public bool IsInsideArea(WoWPoint location)
+            public bool IsInsideArea(Vector3 location)
             {
                 return location.Distance(CenterPoint) <= Radius;
             }
 
 
-            public bool WillPathThroughArea(WoWPoint start, WoWPoint destination)
+            public bool WillPathThroughArea(Vector3 start, Vector3 destination)
             {
-                WoWPoint[] path = Navigator.GeneratePath(start, destination);
-
-                int pathSegmentCount = path.Count() - 1;
-
-                for (int i = 0; i < pathSegmentCount; ++i)
-                {
-                    if (WillTraverseThroughArea(path[i], path[i + 1]))
-                    { return true; }
-                }
                 return false;
+                // TODO: WillPathThroughArea. Probably use straight-line + examine path after generation instead.
+                //				Vector3[] path = Navigator.GeneratePath(start, destination);
+                //
+                //				int pathSegmentCount = path.Count() -1;
+                //
+                //				for (int i = 0; i < pathSegmentCount;  ++i)
+                //				{
+                //					if (WillTraverseThroughArea(path[i], path[i+1]))
+                //						{ return true; }
+                //				}
+                //				return false;
             }
 
 
             private double CalculatePathCost(
-                IList<Tuple<WoWPoint, double>> pathPoints,
-                WoWPoint entryNavPoint,
-                IEnumerable<WoWPoint> exitNavPoints,
+                IList<Tuple<Vector3, double>> pathPoints,
+                Vector3 entryNavPoint,
+                IEnumerable<Vector3> exitNavPoints,
                 bool doCounterClockwise)
             {
                 // Calculate traveral cost to use this path...
@@ -951,32 +954,32 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
 
 
-            private IList<Tuple<WoWPoint, double>> FindNavPointsCounterclockwise()
+            private IList<Tuple<Vector3, double>> FindNavPointsCounterclockwise()
             {
                 // NB: We use a slightly elevated center point for the traceline to address issues
                 // of uneven ground et al.  The magic number of 2.0 was selected, because the tallest
                 // toons are slightly less than 3.0.
-                WoWPoint centerPointForTraceLine = CenterPoint.Add(0.0f, 0.0f, 2.0f);
-                WoWPoint[] potentialNavPoints = CreateCircleXY(CenterPoint, Radius + NavPointOffset, NavPointCount);
+                Vector3 centerPointForTraceLine = CenterPoint.Add(0.0f, 0.0f, 2.0f);
+                Vector3[] potentialNavPoints = CreateCircleXY(CenterPoint, Radius + NavPointOffset, NavPointCount);
                 WorldLine[] potentialNavPointsAsLines =
                     potentialNavPoints
                     .Select(p => new WorldLine(centerPointForTraceLine, p))
                     .ToArray();
 
                 bool[] hitResults;
-                WoWPoint[] hitPoints;
+                Vector3[] hitPoints;
                 GameWorld.MassTraceLine(
                     potentialNavPointsAsLines,
                     TraceLineHitFlags.Collision,
                     out hitResults,
                     out hitPoints);
 
-                var tmpList = new List<Tuple<WoWPoint, double>>();
+                var tmpList = new List<Tuple<Vector3, double>>();
                 for (int i = 0; i < NavPointCount; ++i)
                 {
                     double traversalCost =
                        (hitResults[i]
-                        ? (centerPointForTraceLine.DistanceSqr(potentialNavPointsAsLines[i].End) / centerPointForTraceLine.DistanceSqr(hitPoints[i]))
+                        ? (centerPointForTraceLine.DistanceSquared(potentialNavPointsAsLines[i].End) / centerPointForTraceLine.DistanceSquared(hitPoints[i]))
                         : 1.0);
                     traversalCost = traversalCost * traversalCost;
 
@@ -984,7 +987,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                     {
                         float preservedZ = potentialNavPoints[i].Z;
                         potentialNavPoints[i] = hitPoints[i];
-                        if (!Navigator.CanNavigateFully(CenterPoint, hitPoints[i]))
+                        // TODO: CanNavigateFully to find proper Z. This entire function can use mesh sampling instead.
+                        if (/*!Navigator.CanNavigateFully(CenterPoint, hitPoints[i])*/false)
                         { potentialNavPoints[i].Z = preservedZ; }
                     }
 
@@ -995,15 +999,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
 
 
-            private Tuple<WoWPoint, double> FindPathToDestination(
-                IList<Tuple<WoWPoint, double>> pathPoints,
-                WoWPoint currentLocation,
-                WoWPoint destination,
+            private Tuple<Vector3, double> FindPathToDestination(
+                IList<Tuple<Vector3, double>> pathPoints,
+                Vector3 currentLocation,
+                Vector3 destination,
                 bool doCounterClockwise)
             {
                 // The "Exit" nav points are those that allow unimpeded progress
                 // to the destination.
-                IEnumerable<WoWPoint> exitNavPoints =
+                IEnumerable<Vector3> exitNavPoints =
                    (from tuple in pathPoints
                     where !WillPathThroughArea(tuple.Item1, destination)
                     select tuple.Item1)
@@ -1017,7 +1021,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
                 // The "Entry" point is the location around the area that we approach
                 // to start our path to the "Exit" point.
-                Tuple<WoWPoint, double> entryNavTuple =
+                Tuple<Vector3, double> entryNavTuple =
                    (from tuple in pathPoints
                     let entryPoint = tuple.Item1
                     let traversalCost = tuple.Item2
@@ -1028,10 +1032,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                     orderby
                         pathTraversalCost
                     select Tuple.Create(entryPoint, pathTraversalCost))
-                    .DefaultIfEmpty(Tuple.Create(WoWPoint.Empty, double.MaxValue))
+                    .DefaultIfEmpty(Tuple.Create(Vector3.Zero, double.MaxValue))
                     .FirstOrDefault();
 
-                if (entryNavTuple.Item1 == WoWPoint.Empty)
+                if (entryNavTuple.Item1 == Vector3.Zero)
                 {
                     QBCLog.Warning("Unable to locate navigational 'entry point'--using nearest point");
                     return pathPoints.OrderBy(t => currentLocation.Distance(t.Item1)).FirstOrDefault();
@@ -1045,7 +1049,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             }
 
 
-            public bool WillTraverseThroughArea(WoWPoint start, WoWPoint destination)
+            public bool WillTraverseThroughArea(Vector3 start, Vector3 destination)
             {
                 // If we terminate in the area, it "traverses through" by definition...
                 // NB: We don't apply this test to origin; otherwise, that would prevent
@@ -1068,7 +1072,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 if ((u < 0.0) || (u > 1.0))
                 { return false; }
 
-                WoWPoint intersectionPoint = start.Add((float)(u * xDelta), (float)(u * yDelta), 0.0f);
+                Vector3 intersectionPoint = start.Add((float)(u * xDelta), (float)(u * yDelta), 0.0f);
 
                 return CenterPoint.Distance(intersectionPoint) <= Radius;
             }
@@ -1199,30 +1203,30 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         #endregion
 
 
-        #region Chinajade's WoWPoint Extensions: Basic
+        #region Chinajade's Vector3 Extensions: Basic
         public const double TAU = (2 * Math.PI);
 
         /// <summary>
-        /// <para>Adds a 2D polar quantity to a WOWPOINT, yielding a new WoWPoint
+        /// <para>Adds a 2D polar quantity to a Vector3, yielding a new Vector3
         /// in the same X-Y plane as the original.  The polar quantity is composed
         /// of the XYHEADINGINRADIANS horizontal
         /// angle, and the DISTANCE.  The new point will be vertically offset by
         /// ZOFFSET before being returned.</para>
         /// </summary>
-        /// <param name="wowPoint"></param>
+        /// <param name="Vector3"></param>
         /// <param name="xyHeadingInRadians">horzontal angle in radians. Positive and
         /// negative angles are permitted, and are not constrained to the interval of +-TAU
         /// (see http://tauday.com/).</param>
         /// <param name="distance">postive and negative values are permitted.</param>
         /// <param name="zOffset">vertical offset to apply to the new
-        /// WoWPoint before it is returned.</param>
-        /// <returns>new WoWPoint</returns>
-        public static WoWPoint AddPolarXY(WoWPoint wowPoint,
+        /// Vector3 before it is returned.</param>
+        /// <returns>new Vector3</returns>
+        public static Vector3 AddPolarXY(Vector3 Vector3,
                                                    double xyHeadingInRadians,
                                                    double distance,
                                                    double zOffset = 0.0)
         {
-            return (wowPoint.Add((float)(Math.Cos(xyHeadingInRadians) * distance),
+            return (Vector3.Add((float)(Math.Cos(xyHeadingInRadians) * distance),
                                  (float)(Math.Sin(xyHeadingInRadians) * distance),
                                  (float)zOffset));
         }
@@ -1230,17 +1234,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
         /// <summary>
         /// <para>Creates a circle of POINTCOUNT points with RADIUS in the same X-Y plane
-        /// as WOWPOINT.
+        /// as Vector3.
         /// The circle is then vertically offset by ZOFFSET before being returned.
         /// The returned points are oriented in a 'counter-clockwise' direction.</para>
         /// </summary>
-        /// <param name="wowPoint"></param>
+        /// <param name="Vector3"></param>
         /// <param name="radius">on the partially closed interval (0.0..double.MaxValue]</param>
         /// <param name="pointCount">number of points used to define the circle's perimeter.
         /// This value must be on the closed interval [1..int.MaxValue].</param>
         /// <param name="zOffset">vertical distance to offset the circle</param>
         /// <returns>a set of points lying on the perimeter of a circle.</returns>
-        public static WoWPoint[] CreateCircleXY(WoWPoint wowPoint,
+        public static Vector3[] CreateCircleXY(Vector3 Vector3,
                                                        double radius,
                                                        int pointCount,
                                                        double zOffset = 0.0)
@@ -1248,13 +1252,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             if (pointCount < 1) { throw (new ArgumentOutOfRangeException("pointCount >= 1")); }
             if (radius <= 0.0) { throw (new ArgumentOutOfRangeException("radius > 0.0")); }
 
-            WoWPoint[] circle = new WoWPoint[pointCount];
+            Vector3[] circle = new Vector3[pointCount];
             int perimeterIndex;
             double turnIncrement = TAU / pointCount;
 
             perimeterIndex = -1;
             for (double turnFactor = 0.0; turnFactor < TAU; turnFactor += turnIncrement)
-            { circle[++perimeterIndex] = AddPolarXY(wowPoint, turnFactor, radius, zOffset); }
+            { circle[++perimeterIndex] = AddPolarXY(Vector3, turnFactor, radius, zOffset); }
 
             return (circle);
         }
@@ -1264,13 +1268,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         // (e.g., boat, mob repops, etc). This allows multiple people running
         // the same profile to not stand on top of each other while waiting for
         // something.
-        public static WoWPoint FanOutRandom(WoWPoint location, double maxRadius)
+        public static Vector3 FanOutRandom(Vector3 location, double maxRadius)
         {
             const int CYLINDER_LINE_COUNT = 12;
             const int MAX_TRIES = 50;
             const double SAFE_DISTANCE_BUFFER = 1.75;
 
-            WoWPoint candidateDestination = location;
+            Vector3 candidateDestination = location;
             int tryCount;
 
             // Most of the time we'll find a viable spot in less than 2 tries...
@@ -1279,9 +1283,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             // random number generator.
             for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
             {
-                WoWPoint circlePoint;
+                Vector3 circlePoint;
                 bool[] hitResults;
-                WoWPoint[] hitPoints;
+                Vector3[] hitPoints;
                 int index;
                 WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
@@ -1346,22 +1350,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         }
 
 
-        public static double SurfacePathDistance(WoWPoint start,
-                                                 WoWPoint destination)
+        public static double SurfacePathDistance(Vector3 start,
+                                                 Vector3 destination)
         {
-            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-
-            // We define an invalid path to be of 'infinite' length
-            if (groundPath.Length <= 0)
-            { return (double.MaxValue); }
-
-
-            double pathDistance = start.Distance(groundPath[0]);
-
-            for (int i = 0; i < (groundPath.Length - 1); ++i)
-            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
-
-            return (pathDistance);
+            return start.Distance(destination);
+            // TODO: SurfacePathDistance. Caller of this (FanOutRandom) can use mesh sampling.
+            //			Vector3[] groundPath = Navigator.GeneratePath(start, destination) ?? new Vector3[0];
+            //
+            //			// We define an invalid path to be of 'infinite' length
+            //			if (groundPath.Length <= 0)
+            //			{ return (double.MaxValue); }
+            //
+            //
+            //			double pathDistance = start.Distance(groundPath[0]);
+            //
+            //			for (int i = 0; i < (groundPath.Length - 1); ++i)
+            //			{ pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
+            //
+            //			return (pathDistance);
         }
     }
     #endregion

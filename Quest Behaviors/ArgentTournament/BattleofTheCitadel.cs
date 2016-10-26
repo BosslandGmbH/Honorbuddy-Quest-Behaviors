@@ -22,6 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -53,7 +54,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -85,7 +86,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -146,10 +147,10 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
-        //WoWPoint MountSpot = new WoWPoint(8426.872,711.7554,547.294);
-        private WoWPoint _badarea = new WoWPoint(6225.503, 2275.372, 492.3038);
+        //Vector3 endspot = new Vector3(1076.7,455.7638,-44.20478);
+        // Vector3 spot = new Vector3(1109.848,462.9017,-45.03053);
+        //Vector3 MountSpot = new Vector3(8426.872,711.7554,547.294);
+        private Vector3 _badarea = new Vector3(6225.503f, 2275.372f, 492.3038f);
 
         private Composite GetNearMounts
         {
@@ -257,6 +258,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
+                Vector3 cachedSideLoc = Vector3.Zero;
                 return
                     new Decorator(r => Me.Combat, new Action(r =>
                                                                  {
@@ -348,12 +350,13 @@ namespace Styx.Bot.Quest_Behaviors
                                                                                  return;
                                                                              }
 
-                                                                             var moveTo = WoWMathHelper.CalculatePointAtSide(StyxWoW.Me.CurrentTarget.Location, Me.CurrentTarget.Rotation, 20f, false);
-                                                                             if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
-                                                                             {
-                                                                                 Navigator.MoveTo(moveTo);
-                                                                             }
+                                                                             // TODO: Find better side point. Rewrite to use mesh sampling instead.
+                                                                             Vector3 sideLoc = WoWMathHelper.CalculatePointAtSide(Me.CurrentTarget.Location, Me.CurrentTarget.Rotation, 20f, false);
+                                                                             if (cachedSideLoc == Vector3.Zero || Vector3.DistanceSquared(sideLoc, cachedSideLoc) > 8 * 8)
+                                                                                 cachedSideLoc = sideLoc;
 
+                                                                             if (Navigator.MoveTo(cachedSideLoc) == MoveResult.PathGenerationFailed)
+                                                                                 cachedSideLoc = Vector3.Zero;
 
                                                                              if (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 1))
                                                                              {
@@ -399,10 +402,10 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        private readonly WoWPoint[] _spots = {
-                                       new WoWPoint(6393.416, 2356.46, 469.2245), new WoWPoint(6448.314, 2181.319, 489.4585),
-                                       new WoWPoint(6391.853, 2146.777, 494.4465),new WoWPoint(6270.915, 2245.348, 487.9521),
-                                       new WoWPoint(6199.627, 2223.347, 503.8197),
+        private readonly Vector3[] _spots = {
+                                       new Vector3(6393.416f, 2356.46f, 469.2245f), new Vector3(6448.314f, 2181.319f, 489.4585f),
+                                       new Vector3(6391.853f, 2146.777f, 494.4465f),new Vector3(6270.915f, 2245.348f, 487.9521f),
+                                       new Vector3(6199.627f, 2223.347f, 503.8197f),
                                    };
 
         private async Task<bool> LanceUp()
@@ -449,8 +452,8 @@ namespace Styx.Bot.Quest_Behaviors
                                                                                            }
                                                                                            else
                                                                                            {
-                                                                                            //Move to where we can find scouts
-                                                                                            Navigator.MoveTo(_spots[_spot]);
+                                                                                               //Move to where we can find scouts
+                                                                                               Navigator.MoveTo(_spots[_spot]);
                                                                                                if (Me.Location.Distance(_spots[_spot]) < 10)
                                                                                                {
                                                                                                    _spot++;
@@ -461,8 +464,8 @@ namespace Styx.Bot.Quest_Behaviors
                                                                                        }
                                                                                        else
                                                                                        {
-                                                                                        //We have a target, get in range and pull with shield breaker
-                                                                                        if (Me.CurrentTarget.Distance > 20)
+                                                                                           //We have a target, get in range and pull with shield breaker
+                                                                                           if (Me.CurrentTarget.Distance > 20)
                                                                                            {
                                                                                                Navigator.MoveTo(Me.CurrentTarget.Location);
                                                                                            }

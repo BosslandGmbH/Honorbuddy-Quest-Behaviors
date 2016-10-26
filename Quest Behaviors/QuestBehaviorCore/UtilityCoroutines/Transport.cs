@@ -12,11 +12,13 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Bots.Grind;
 using Buddy.Coroutines;
 
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.Helpers;
@@ -48,24 +50,24 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception. </exception>
         public static async Task<bool> UseTransport(
             int transportId,
-            WoWPoint transportStartLoc,
-            WoWPoint transportEndLoc,
-            WoWPoint waitAtLoc,
-            WoWPoint boardAtLoc,
-            WoWPoint getOffLoc,
+            Vector3 transportStartLoc,
+            Vector3 transportEndLoc,
+            Vector3 waitAtLoc,
+            Vector3 boardAtLoc,
+            Vector3 getOffLoc,
             MovementByType movement = MovementByType.FlightorPreferred,
             string destination = null,
             Action navigationFailedAction = null)
         {
-            if (getOffLoc != WoWPoint.Empty && Me.Location.DistanceSqr(getOffLoc) < 2 * 2)
+            if (getOffLoc != Vector3.Zero && Me.Location.DistanceSquared(getOffLoc) < 2 * 2)
             {
                 return false;
             }
 
             var transportLocation = GetTransportLocation(transportId);
-            if (transportLocation != WoWPoint.Empty
-                && transportLocation.DistanceSqr(transportStartLoc) < 1.5 * 1.5
-                && waitAtLoc.DistanceSqr(Me.Location) < 2 * 2)
+            if (transportLocation != Vector3.Zero
+                && transportLocation.DistanceSquared(transportStartLoc) < 1.5 * 1.5
+                && waitAtLoc.DistanceSquared(Me.Location) < 2 * 2)
             {
                 TreeRoot.StatusText = "Moving inside transport";
                 Navigator.PlayerMover.MoveTowards(boardAtLoc);
@@ -77,7 +79,7 @@ namespace Honorbuddy.QuestBehaviorCore
             // loop while on transport to prevent bot from doing anything else
             while (Me.Transport != null && Me.Transport.Entry == transportId)
             {
-                if (transportLocation != WoWPoint.Empty && transportLocation.DistanceSqr(transportEndLoc) < 1.5 * 1.5)
+                if (transportLocation != Vector3.Zero && transportLocation.DistanceSquared(transportEndLoc) < 1.5 * 1.5)
                 {
                     TreeRoot.StatusText = "Moving out of transport";
                     Navigator.PlayerMover.MoveTowards(getOffLoc);
@@ -97,12 +99,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 transportLocation = GetTransportLocation(transportId);
             }
 
-            if (waitAtLoc.DistanceSqr(Me.Location) > 2 * 2)
+            if (waitAtLoc.DistanceSquared(Me.Location) > 2 * 2)
             {
                 if (!await MoveTo(waitAtLoc, destination ?? waitAtLoc.ToString(), movement))
                 {
-                    if (navigationFailedAction != null)
-                        navigationFailedAction();
+                    navigationFailedAction?.Invoke();
                 }
                 return true;
             }
@@ -111,10 +112,10 @@ namespace Honorbuddy.QuestBehaviorCore
             return true;
         }
 
-        private static WoWPoint GetTransportLocation(int transportId)
+        private static Vector3 GetTransportLocation(int transportId)
         {
             var transport = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o.Entry == transportId);
-            return transport != null ? transport.WorldLocation : WoWPoint.Zero;
+            return transport != null ? transport.WorldLocation : Vector3.Zero;
         }
     }
 }

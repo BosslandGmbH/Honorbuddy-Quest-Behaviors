@@ -37,6 +37,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -76,18 +77,18 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 AttackButton = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new[] { "SpellIndex" }) ?? 0;
-                FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 FireHeight = GetAttributeAsNullable("FireHeight", false, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
                 FireUntilFinished = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new[] { "FireTillFinish" }) ?? false;
-                PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
-                TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.Vector3NonEmpty, null);
+                TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 VehicleId = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new[] { "VehicleID" }) ?? 0;
                 VehicleMountId = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 0;
 
-                StartObjectivePoint = GetAttributeAsNullable("StartObjectivePoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                StartObjectivePoint = GetAttributeAsNullable("StartObjectivePoint", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 NPCIds = GetNumberedAttributesAsArray("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" });
-                EndPoint = GetAttributeAsNullable("EndPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                StartPoint = GetAttributeAsNullable("StartPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                EndPoint = GetAttributeAsNullable("EndPoint", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
+                StartPoint = GetAttributeAsNullable("StartPoint", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 VehicleType = GetAttributeAsNullable("VehicleType", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 0;
                 Counter = 0;
@@ -112,17 +113,17 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
         // Attributes provided by caller
         public int AttackButton { get; set; }
         public int FireHeight { get; private set; }
-        public WoWPoint FirePoint { get; private set; }
+        public Vector3 FirePoint { get; private set; }
         public bool FireUntilFinished { get; set; }
-        public WoWPoint? PreviousLocation { get; private set; }
+        public Vector3? PreviousLocation { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint TargetPoint { get; private set; }
+        public Vector3 TargetPoint { get; private set; }
         public int VehicleId { get; set; }
         public int[] NPCIds { get; set; }
         public int VehicleMountId { get; private set; }
-        public WoWPoint StartObjectivePoint { get; private set; }
+        public Vector3 StartObjectivePoint { get; private set; }
         public int VehicleType { get; set; }
 
         // Private variables for internal state
@@ -158,10 +159,10 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             }
         }
 
-        private WoWPoint[] Path { get; set; }
-        private CircularQueue<WoWPoint> PathCircle { get; set; }
-        private WoWPoint StartPoint { get; set; }    // Start point Where Mount Is
-        private WoWPoint EndPoint { get; set; }
+        private Vector3[] Path { get; set; }
+        private CircularQueue<Vector3> PathCircle { get; set; }
+        private Vector3 StartPoint { get; set; }    // Start point Where Mount Is
+        private Vector3 EndPoint { get; set; }
         private WoWUnit _vehicle;
 
         private List<WoWUnit> VehicleList
@@ -184,16 +185,20 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
         // Styx.Logic.Profiles.Quest.ProfileHelperFunctionsBase
 
-        private WoWPoint MoveToLocation
+        private Vector3 MoveToLocation
         {
             get
             {
-                Path = Navigator.GeneratePath(_vehicle.Location, FirePoint);
-                _pathIndex = 0;
+                return FirePoint;
+                // TODO: Better way of finding next point to move
+                // Navigator should handle vehicles seamlessly instead of fixing this up.
+                //				Path = Navigator.GeneratePath(_vehicle.Location, FirePoint);
+                //				_pathIndex = 0;
+                //
+                //				while (Path[_pathIndex].Distance(_vehicle.Location) <= 3 && _pathIndex < Path.Length - 1)
+                //					_pathIndex++;
+                //				return Path[_pathIndex];
 
-                while (Path[_pathIndex].Distance(_vehicle.Location) <= 3 && _pathIndex < Path.Length - 1)
-                    _pathIndex++;
-                return Path[_pathIndex];
             }
         }
 
@@ -438,9 +443,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             return false;
         }
 
-        public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
+        public IEnumerable<Vector3> ParseVector3s(IEnumerable<XElement> elements)
         {
-            var temp = new List<WoWPoint>();
+            var temp = new List<Vector3>();
 
             foreach (XElement element in elements)
             {
@@ -452,7 +457,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                 float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
                 float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
                 float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
-                temp.Add(new WoWPoint(x, y, z));
+                temp.Add(new Vector3(x, y, z));
             }
 
             return temp;
@@ -460,13 +465,13 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
         private void ParsePaths()
         {
-            var startPoint = WoWPoint.Empty;
-            var path = new CircularQueue<WoWPoint>();
+            var startPoint = Vector3.Zero;
+            var path = new CircularQueue<Vector3>();
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
+            foreach (Vector3 point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "Start")))
                 startPoint = point;
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Path")))
+            foreach (Vector3 point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "Path")))
                 path.Enqueue(point);
 
             StartPoint = startPoint;

@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -97,7 +97,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
 
         private bool _useMount;
         private bool _spoke = false;
-        private WoWPoint _spot = new WoWPoint(370.5139, -2026.915, 57.19295);
+        private Vector3 _spot = new Vector3(370.5139f, -2026.915f, 57.19295f);
 
         public Composite DoneYet
         {
@@ -107,7 +107,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                     new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
+                        CharacterSettings.Instance.UseGroundMount = true;
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
@@ -134,7 +134,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                         let target = unit.CurrentTarget
                         let orderByLoc = kiryn != null ? kiryn.Location : charmedUnit.Location
                         where target != null && (target == kiryn || target == charmedUnit)
-                        orderby orderByLoc.DistanceSqr(unit.Location)
+                        orderby orderByLoc.DistanceSquared(unit.Location)
                         select unit).FirstOrDefault();
             }
         }
@@ -216,7 +216,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         public override void OnFinished()
         {
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-            CharacterSettings.Instance.UseMount = _useMount;
+            CharacterSettings.Instance.UseGroundMount = _useMount;
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
             base.OnFinished();
@@ -234,8 +234,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                _useMount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+                _useMount = CharacterSettings.Instance.UseGroundMount;
+                CharacterSettings.Instance.UseGroundMount = false;
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
                 this.UpdateGoalText(QuestId);

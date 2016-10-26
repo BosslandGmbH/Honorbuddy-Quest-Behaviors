@@ -20,7 +20,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -51,7 +51,7 @@ namespace Honorbuddy.Quest_Behaviors.SetHearthstone
 
             NpcId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
             AreaId = GetAttributeAsNullable<int>("AreaId", false, ConstrainAs.MobId, null) ?? 0;
-            Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+            Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
             Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
             if (!string.IsNullOrEmpty(Name))
@@ -68,7 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.SetHearthstone
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         public int NpcId { get; set; }
-        public WoWPoint Location { get; set; }
+        public Vector3 Location { get; set; }
         public string Name { get; set; }
         public int AreaId { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }

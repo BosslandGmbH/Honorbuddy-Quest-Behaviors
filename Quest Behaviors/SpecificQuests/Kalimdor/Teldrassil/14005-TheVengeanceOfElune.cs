@@ -24,7 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -87,7 +87,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
 
         public static int MobId = 34521;
 
-        public static WoWPoint MobLocation = new WoWPoint(9111.133f, 1795.15f, 1323.46f);
+        public static Vector3 MobLocation = new Vector3(9111.133f, 1795.15f, 1323.46f);
 
         public WoWUnit BoughOfCorruption
         {

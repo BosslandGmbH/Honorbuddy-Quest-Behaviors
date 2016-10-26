@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -90,7 +90,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
         // Static constant variables
         public static List<uint> ExplosiveHatredIds = new List<uint> { 61070 };
         public static uint ShaiHuId = 61069;
-        public static WoWPoint Waypoint = new WoWPoint(2104.215, 314.8302, 475.4525);
+        public static Vector3 Waypoint = new Vector3(2104.215f, 314.8302f, 475.4525f);
 
         public List<WoWUnit> Enemys
         {
@@ -230,7 +230,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 
                 this.UpdateGoalText(QuestId);
 
-                WoWMovement.ClickToMove(new WoWPoint(2175.019, 380.8854, 476.0461));
+                WoWMovement.ClickToMove(new Vector3(2175.019f, 380.8854f, 476.0461f));
             }
         }
 

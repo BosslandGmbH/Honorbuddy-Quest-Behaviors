@@ -11,13 +11,13 @@
 #region Usings
 
 using System.Linq;
+using System.Numerics;
 using System.Text;
 
 using Styx;
+using Styx.Common;
 using Styx.WoWInternals;
 using Styx.WoWInternals.DBC;
-
-using Tripper.Tools.Math;
 #endregion
 
 
@@ -26,7 +26,7 @@ namespace Honorbuddy.QuestBehaviorCore
     public static class Extensions_FullInfo
     {
         // 25Sep2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this Matrix matrix, bool useCompactForm = false, int indentLevel = 0)
+        public static string ToString_FullInfo(this Matrix4x4 matrix, bool useCompactForm = false, int indentLevel = 0)
         {
             var indent = string.Empty.PadLeft(indentLevel);
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
