@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -48,7 +49,6 @@ namespace Honorbuddy.QuestBehaviorCore
                     new CharacterSettingsSubMemento(),
                     new GlobalSettingsSubMemento(),
                     new LevelBotSubMemento(),
-                    new NavigatorSubMemento(),
                     new ProfileSettingsSubMemento(),
                     new RoutineManagerSubMemento()
                 };
@@ -266,36 +266,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 parent.Add(_settings);
             }
         }
-
-
-        // This memento captures the settings embedded in the Navigator
-        // that a quest behavior is interested in altering.
-        private class NavigatorSubMemento : ISubMemento
-        {
-            private readonly float _pathPrecision;
-
-            public NavigatorSubMemento()
-            {
-                _pathPrecision = Navigator.PathPrecision;
-            }
-
-
-            public void Restore()
-            {
-                Navigator.PathPrecision = _pathPrecision;
-            }
-
-
-            public void AddXml(XElement parent)
-            {
-                parent.Add(
-                    new XElement("Navigator",
-                        new XElement("PathPrecision", _pathPrecision)
-                        )
-                    );
-            }
-        }
-
 
         // This class captures any profile settings that can be directly modified (i.e.,
         // that have a 'setter' operation defined for them), or indirectly modified

@@ -21,10 +21,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -68,8 +69,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.LaosyScouting
         private bool _isBehaviorDone;
         public int MobIdLao = 65868;
         private Composite _root;
-        public WoWPoint Location1 = new WoWPoint(1578.794, 1446.312, 512.7374);
-        public WoWPoint Location2 = new WoWPoint(1574.712, 1428.84, 484.7786);
+        public Vector3 Location1 = new Vector3(1578.794f, 1446.312f, 512.7374f);
+        public Vector3 Location2 = new Vector3(1574.712f, 1428.84f, 484.7786f);
 
         public override bool IsDone
         {

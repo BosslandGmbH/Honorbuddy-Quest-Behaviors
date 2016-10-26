@@ -31,7 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -96,7 +96,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
         public static int[] MobIds = new[] { 59687 };
         public static int RedCraneID = 59653;
 
-        public static WoWPoint ShaLocation = new WoWPoint(-1813.47f, 1052.34f, -31.73f);
+        public static Vector3 ShaLocation = new Vector3(-1813.47f, 1052.34f, -31.73f);
 
         public WoWUnit Echo
         {

@@ -15,9 +15,10 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -45,9 +46,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WatersRunRed
         // DON'T EDIT THIS--it is auto-populated by Git
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
-
-        private readonly WoWPoint _turretLoc = new WoWPoint(710.7488, 947.981, 34.75594);
-        private readonly WoWPoint _firstshot = new WoWPoint(719.7801, 826.9634, 31.05201);
+        private readonly Vector3 _turretLoc = new Vector3(710.7488f, 947.981f, 34.75594f);
+        private readonly Vector3 _firstshot = new Vector3(719.7801f, 826.9634f, 31.05201f);
         public double Angle = 0;
         public double CurentAngle = 0;
         private bool _isBehaviorDone;

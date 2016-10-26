@@ -12,7 +12,7 @@
 #region Usings
 
 using System.Globalization;
-
+using System.Numerics;
 using Styx;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -86,7 +86,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         // 11Mar2013-04:41UTC chinajade
         // NB: method instead of a property, because significant time may be involved in execution
-        public bool HeadingSet(WoWPoint location)
+        public bool HeadingSet(Vector3 location)
         {
             if (Query.IsInVehicle())
             {

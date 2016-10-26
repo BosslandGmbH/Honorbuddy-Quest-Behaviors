@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -177,8 +177,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
                             //WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(Me.CurrentTarget.Rotation, 20));
                             var x = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(z => z.CharmedByUnit == Me);
 
-                            Tripper.Tools.Math.Vector3 v = Me.CurrentTarget.Location - Me.Location;
-                            v.Normalize();
+                            Vector3 v = Vector3.Normalize(Me.CurrentTarget.Location - Me.Location);
                             Lua.DoString(
                                 string.Format(
                                     "VehicleAimIncrement(({0} - VehicleAimGetAngle())); CastPetAction(1);CastPetAction(2);",

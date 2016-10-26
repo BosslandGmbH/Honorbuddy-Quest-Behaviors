@@ -249,6 +249,7 @@ using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
@@ -485,6 +486,11 @@ namespace Honorbuddy.QuestBehaviorCore
                     _configMemento.Dispose();
                     _configMemento = null;
                 }
+
+                // Make sure we don't leave stale POIs set after finishing a QB.
+                // This could happen if the user used a TerminateWhen to finish it
+                // for example.
+                BotPoi.Clear("Finished " + GetType().Name);
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
@@ -723,7 +729,7 @@ namespace Honorbuddy.QuestBehaviorCore
         protected virtual float WeightUnitForTargeting(WoWUnit wowUnit)
         {
             // Prefer units closest to us...
-            return (float)(-wowUnit.Location.CollectionDistance());
+            return (float)(-wowUnit.CollectionDistance());
         }
 
 

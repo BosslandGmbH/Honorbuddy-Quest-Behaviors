@@ -45,7 +45,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -86,26 +88,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                 Task_CaptainAnson = new TaskDetail(
                     "Captain Anson",
                     36397,  // Captain Anson:  http://wowhead.com/npc=36397
-                    new WoWPoint(-2073.466, 2632.036, 2.717113),    // Launch Position
-                    new WoWPoint(-2124.181, 2662.547, 8.256202),    // Target Position
+                    new Vector3(-2073.466f, 2632.036f, 2.717113f),    // Launch Position
+                    new Vector3(-2124.181f, 2662.547f, 8.256202f),    // Target Position
                     0.22,                                           // Needed Azimuth (in radians)
-                    new WoWPoint(-2105.5, 2655.504, 0.5987438),     // Jump down off boat point
+                    new Vector3(-2105.5f, 2655.504f, 0.5987438f),     // Jump down off boat point
                     c => IsQuestObjectiveComplete(QuestId, 1)
                     );
 
                 Task_CaptainMorris = new TaskDetail(
                     "Captain Morris",
                     36399, // Captain Morris:  http://wowhead/npc=36399
-                    new WoWPoint(-2182.197, 2549.495, 2.720596),    // Launch Position
-                    new WoWPoint(-2225.435, 2565.901, 8.664543),    // Target Position
+                    new Vector3(-2182.197f, 2549.495f, 2.720596f),    // Launch Position
+                    new Vector3(-2225.435f, 2565.901f, 8.664543f),    // Target Position
                     0.18,                                           // Needed Azimuth (in radians)
-                    new WoWPoint(-2207.448, 2558.94, 0.950241),     // Jump down off boat point
+                    new Vector3(-2207.448f, 2558.94f, 0.950241f),     // Jump down off boat point
                     c => IsQuestObjectiveComplete(QuestId, 2));
 
                 MobId_ForsakenMachinist = 36292; // http://wowhead.com/npc=36292
                 VehicleId_ForsakenCatapult = 36283; // http://www.wowhead.com/npc=36283
 
-                Location_CatapultFarm = new WoWPoint(-2052.313, 2577.324, 1.39316).FanOutRandom(20.0);
+                Location_CatapultFarm = new Vector3(-2052.313f, 2577.324f, 1.39316f).FanOutRandom(20.0);
 
                 Lua_LaunchCommand = "if GetPetActionCooldown(1) == 0 then CastPetAction(1) end"; // http://www.wowhead.com/spell=66251
 
@@ -117,7 +119,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                 // Blackspots...
                 Blackspots = new List<Blackspot>()
                 {
-                    new Blackspot(new WoWPoint(-2126.297, 2536.12, 7.228605), 12.0f, 1.0f)
+                    new Blackspot(new Vector3(-2126.297f, 2536.12f, 7.228605f), 12.0f, 1.0f)
                 };
 
                 // Semantic coherency / covariant dependency checks --
@@ -146,7 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         public IEnumerable<Blackspot> Blackspots { get; private set; }
-        public WoWPoint Location_CatapultFarm { get; private set; }
+        public Vector3 Location_CatapultFarm { get; private set; }
 
         public TaskDetail Task_CaptainAnson { get; private set; }
         public TaskDetail Task_CaptainMorris { get; private set; }
@@ -174,7 +176,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
             ExitBoatJumpDown,
         }
 
-        public delegate WoWPoint LocationDelegate(object context);
+        public delegate Vector3 LocationDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
         private TaskDetail CurrentTask { get; set; }
@@ -461,13 +463,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                                 new PrioritySelector(
                                     // Allow time for Launch completion, and toon to land on boat...
                                     new Wait(TimeSpan.FromSeconds(5),
-                                        context => Navigator.CanNavigateFully(Me.Location, CurrentTask.PositionToLand),
+                                        // TODO: Rewrite to use something else (probably IsOnTransport?)
+                                        context => true/*Navigator.CanNavigateFully(Me.Location, CurrentTask.PositionToLand)*/,
                                         new ActionAlwaysFail()),
 
                                     new Action(context =>
                                     {
                                         // If we can navigate to intended landing spot, we successfully boarded boat...
-                                        if (Navigator.CanNavigateFully(Me.Location, CurrentTask.PositionToLand))
+                                        // TODO: Rewrite to use something else (probably IsOnTransport?)
+                                        if (/*Navigator.CanNavigateFully(Me.Location, CurrentTask.PositionToLand)*/true)
                                         {
                                             State_MainBehavior = StateType_MainBehavior.KillingCaptain;
                                             return;
@@ -485,7 +489,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                                     new Action(context => { State_MainBehavior = StateType_MainBehavior.AcquiringCatapult; }))),
 
                             // Try to board boat...
-                            UtilityBehavior_MoveAndUseCatapult()
+                            new ActionRunCoroutine(ctx => UtilityCoroutine_MoveAndUseCatapult())
                         )),
             #endregion
 
@@ -548,9 +552,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
         #region Helper Class: TaskDetail
         public class TaskDetail
         {
-            public TaskDetail(string mobName, int mobId, WoWPoint positionForLaunch, WoWPoint positionToTarget,
+            public TaskDetail(string mobName, int mobId, Vector3 positionForLaunch, Vector3 positionToTarget,
                                 double neededAzimuth,
-                                WoWPoint positionToJumpDownOffBoat,
+                                Vector3 positionToJumpDownOffBoat,
                                 CanRunDecoratorDelegate isTaskComplete)
             {
                 IsTaskComplete = isTaskComplete;
@@ -566,9 +570,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
             public string MobName { get; private set; }
             public int MobId { get; private set; }
             public double NeededAzimuth { get; private set; }
-            public WoWPoint PositionForLaunch { get; private set; }
-            public WoWPoint PositionToJumpDownOffBoat { get; private set; }
-            public WoWPoint PositionToLand { get; private set; }
+            public Vector3 PositionForLaunch { get; private set; }
+            public Vector3 PositionToJumpDownOffBoat { get; private set; }
+            public Vector3 PositionToLand { get; private set; }
         }
         #endregion
 
@@ -619,7 +623,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
         }
 
 
-        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
+        private IEnumerable<WoWPlayer> FindPlayersNearby(Vector3 location, double radius)
         {
             return
                 from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
@@ -757,70 +761,51 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
         }
 
 
-        private Composite UtilityBehavior_MoveAndUseCatapult()
+        private async Task<bool> UtilityCoroutine_MoveAndUseCatapult()
         {
-            return new Decorator(context => Query.IsInVehicle() && IsViable(SelectedCatapult),
-                new PrioritySelector(
+            if (!Query.IsInVehicle() || !IsViable(SelectedCatapult))
+                return false;
 
-                    // Move vehicle into position...
-                    // NB: We must use ClickToMove since we're in a vehicle
-                    new Decorator(context => SelectedCatapult.Location.Distance2D(CurrentTask.PositionForLaunch) > Navigator.PathPrecision,
-                        new Action(context =>
-                        {
-                            WoWPoint destination = CurrentTask.PositionForLaunch;
-                            WoWPoint interimDestination = destination;
+            // Move vehicle into position...
+            if (!Navigator.AtLocation(CurrentTask.PositionForLaunch))
+            {
+                Navigator.MoveTo(CurrentTask.PositionForLaunch);
+                return true;
+            }
 
-                            Queue<WoWPoint> path = new Queue<WoWPoint>(Navigator.GeneratePath(SelectedCatapult.Location, destination));
+            // Adjust heading...
+            if (!WoWMathHelper.IsFacing(WoWMovement.ActiveMover.Location, GetVehicleFacing(),
+                                        CurrentTask.PositionToLand, WoWMathHelper.DegreesToRadians(0.5f)))
+            {
+                // Handle heading...
+                double neededHeading = WoWMathHelper.CalculateNeededFacing(Me.Location, CurrentTask.PositionToLand);
+                neededHeading = WoWMathHelper.NormalizeRadian((float)neededHeading);
+                QBCLog.Info("Adjusting firing heading");
+                Me.SetFacing((float)neededHeading);
+                await Coroutine.Sleep(200);
+                return true;
+            }
 
-                            interimDestination = path.Dequeue();
-                            while (SelectedCatapult.Location.Distance2D(interimDestination) <= Navigator.PathPrecision)
-                            { interimDestination = (path.Count() > 0) ? path.Dequeue() : destination; }
+            // Adjust azimuth...
+            double currentAzimuth = WoWMathHelper.NormalizeRadian(Lua.GetReturnVal<float>("return VehicleAimGetAngle();", 0));
+            double neededAzimuth = NormalizeAngleToPi(CurrentTask.NeededAzimuth);
 
-                            QBCLog.Info("Moving catapult into position for {0}'s boat", CurrentTask.MobName);
-                            WoWMovement.ClickToMove(interimDestination);
-                        })),
+            double azimuthChangeRequired = neededAzimuth - currentAzimuth;
+            if (Math.Abs(azimuthChangeRequired) >= 0.01)
+            {
+                QBCLog.Info("Adjusting firing azimuth");
+                // NB: VehicleAimIncrement() handles negative values of 'increment' correctly...
+                Lua.DoString("VehicleAimIncrement({0})", azimuthChangeRequired);
+                await Coroutine.Sleep(200);
+                return true;
+            }
 
-                    // Adjust heading...
-                    new Decorator(context => !WoWMathHelper.IsFacing(Me.Location, GetVehicleFacing(), CurrentTask.PositionToLand, (float)Math.PI / 360),
-                        new Action(context =>
-                        {
-                            // Handle heading...
-                            double neededHeading = WoWMathHelper.CalculateNeededFacing(Me.Location, CurrentTask.PositionToLand);
-                            neededHeading = WoWMathHelper.NormalizeRadian((float)neededHeading);
-                            QBCLog.Info("Adjusting firing heading");
-                            Me.SetFacing((float)neededHeading);
-                        })),
+            // Fire..
+            QBCLog.Info("Firing Catapult");
+            Lua.DoString(Lua_LaunchCommand);
 
-                    // Adjust azimuth...
-                    new Action(context =>
-                    {
-                        // Handle Azimuth...
-                        double currentAzimuth = WoWMathHelper.NormalizeRadian(Lua.GetReturnVal<float>("return VehicleAimGetAngle();", 0));
-                        double neededAzimuth = NormalizeAngleToPi(CurrentTask.NeededAzimuth);
-
-                        double azimuthChangeRequired = neededAzimuth - currentAzimuth;
-                        if (Math.Abs(azimuthChangeRequired) >= 0.01)
-                        {
-                            QBCLog.Info("Adjusting firing azimuth");
-                            // NB: VehicleAimIncrement() handles negative values of 'increment' correctly...
-                            Lua.DoString("VehicleAimIncrement({0})", azimuthChangeRequired);
-                            return RunStatus.Success;
-                        }
-
-                        return RunStatus.Failure;
-                    }),
-
-                    // Fire...
-                    new Decorator(context => Query.IsInVehicle(),
-                        new Sequence(
-                            new Action(context =>
-                            {
-                                QBCLog.Info("Firing Catapult");
-                                Lua.DoString(Lua_LaunchCommand);
-                            }),
-                            new WaitContinue(TimeSpan.FromSeconds(3), context => !Query.IsInVehicle(), new ActionAlwaysSucceed())
-                        ))
-                ));
+            await Coroutine.Wait(3000, () => !Query.IsInVehicle());
+            return true;
         }
 
 
@@ -850,156 +835,4 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
         }
         #endregion // Behavior helpers
     }
-
-
-    #region WoWPoint_Extensions
-    public static class WoWPoint_Extensions
-    {
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
-
-
-        public static WoWPoint Add(this WoWPoint wowPoint,
-                                    double x,
-                                    double y,
-                                    double z)
-        {
-            return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
-        }
-
-
-        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
-                                           double xyHeadingInRadians,
-                                           double distance,
-                                           double zModifier)
-        {
-            return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
-                                 (Math.Sin(xyHeadingInRadians) * distance),
-                                 zModifier));
-        }
-
-
-        // Finds another point near the destination.  Useful when toon is 'waiting' for something
-        // (e.g., boat, mob repops, etc). This allows multiple people running
-        // the same profile to not stand on top of each other while waiting for
-        // something.
-        public static WoWPoint FanOutRandom(this WoWPoint location,
-                                                double maxRadius)
-        {
-            const int CYLINDER_LINE_COUNT = 12;
-            const int MAX_TRIES = 50;
-            const double SAFE_DISTANCE_BUFFER = 1.75;
-
-            WoWPoint candidateDestination = location;
-            int tryCount;
-
-            // Most of the time we'll find a viable spot in less than 2 tries...
-            // However, if you're standing on a pier, or small platform a
-            // viable alternative may take 10-15 tries--its all up to the
-            // random number generator.
-            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
-            {
-                WoWPoint circlePoint;
-                bool[] hitResults;
-                WoWPoint[] hitPoints;
-                int index;
-                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
-
-                candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
-
-                // Build set of tracelines that can evaluate the candidate destination --
-                // We build a cone of lines with the cone's base at the destination's 'feet',
-                // and the cone's point at maxRadius over the destination's 'head'.  We also
-                // include the cone 'normal' as the first entry.
-
-                // 'Normal' vector
-                index = 0;
-                traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
-
-                // Cylinder vectors
-                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
-                {
-                    ++index;
-                    circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
-                    traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
-                }
-
-
-                // Evaluate the cylinder...
-                // The result for the 'normal' vector (first one) will be the location where the
-                // destination meets the ground.  Before this MassTrace, only the candidateDestination's
-                // X/Y values were valid.
-                GameWorld.MassTraceLine(traceLines.ToArray(),
-                                        TraceLineHitFlags.Collision,
-                                        out hitResults,
-                                        out hitPoints);
-
-                candidateDestination = hitPoints[0];    // From 'normal', Destination with valid Z coordinate
-
-
-                // Sanity check...
-                // We don't want to be standing right on the edge of a drop-off (say we'e on
-                // a plaform or pier).  If there is not solid ground all around us, we reject
-                // the candidate.  Our test for validity is that the walking distance must
-                // not be more than 20% greater than the straight-line distance to the point.
-                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
-                                                                      ? 1
-                                                                      : 0));
-
-                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
-                { continue; }
-
-                // If new destination is 'too close' to our current position, try again...
-                if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                { continue; }
-
-                break;
-            }
-
-            // If we exhausted our tries, just go with simple destination --
-            if (tryCount <= 0)
-            { candidateDestination = location; }
-
-            return (candidateDestination);
-        }
-
-
-        public static double SurfacePathDistance(this WoWPoint start,
-                                                    WoWPoint destination)
-        {
-            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-
-            // We define an invalid path to be of 'infinite' length
-            if (groundPath.Length <= 0)
-            { return (double.MaxValue); }
-
-
-            double pathDistance = start.Distance(groundPath[0]);
-
-            for (int i = 0; i < (groundPath.Length - 1); ++i)
-            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
-
-            return (pathDistance);
-        }
-
-
-        // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint WaterSurface(this WoWPoint location)
-        {
-            WoWPoint hitLocation;
-            bool hitResult;
-            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
-
-            hitResult = GameWorld.TraceLine(locationUpper,
-                                             locationLower,
-                                             TraceLineHitFlags.LiquidAll,
-                                             out hitLocation);
-
-            return (hitResult ? hitLocation : WoWPoint.Empty);
-        }
-    }
-    #endregion
 }

@@ -164,10 +164,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Bots.DungeonBuddy;
-using Bots.DungeonBuddy.Avoidance;
+using Styx.Pathing.Avoidance;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -232,7 +232,7 @@ namespace Honorbuddy.Quest_Behaviors
                         new ConstrainTo.Domain<float>(10f, 150f),
                         null) ?? 40;
 
-                    LeashPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
+                    LeashPoint = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null);
 
                     // Primary attributes...
                     var numberedObjectIds = GetAttributeAsArray<int>("ObjectIds", false, ConstrainAs.ObjectId, null, null) ?? new int[0];
@@ -294,7 +294,7 @@ namespace Honorbuddy.Quest_Behaviors
         private string AvoidWhenExpression { get; set; }
         private string AvoidLocationProducerExpression { get; set; }
         private CommandType Command { get; set; }
-        public WoWPoint? LeashPoint { get; private set; }
+        public Vector3? LeashPoint { get; private set; }
         private float LeashRadius { get; set; }
         private float Radius { get; set; }
         private bool IgnoreIfBlocking { get; set; }
@@ -417,9 +417,11 @@ namespace Honorbuddy.Quest_Behaviors
         private void InstallHook()
         {
             s_prevNavigator = Navigator.NavigationProvider;
-            var avoidNavigator = new AvoidanceNavigationProvider(); ;
-            Navigator.NavigationProvider = avoidNavigator;
-            avoidNavigator.UpdateMaps();
+#warning FIXME AvoidanceNavigationProvider
+            // TODO: AvoidanceNavigationProvider
+            //            var avoidNavigator = new AvoidanceNavigationProvider();
+            //            Navigator.NavigationProvider = avoidNavigator;
+            //            avoidNavigator.UpdateMaps();
             s_hook = new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, HookHandler));
             TreeHooks.Instance.InsertHook("Combat_Main", 0, s_hook);
             BotEvents.OnPulse += BotEvents_OnPulse;
@@ -435,11 +437,6 @@ namespace Honorbuddy.Quest_Behaviors
                 return;
             TreeHooks.Instance.RemoveHook("Combat_Main", s_hook);
             Navigator.NavigationProvider = s_prevNavigator;
-
-            // Make sure maps for the previous navigator are up-to-date
-            var meshNav = Navigator.NavigationProvider as MeshNavigator;
-            if (meshNav != null)
-                meshNav.UpdateMaps();
 
             s_prevNavigator = null;
             s_hook = null;
@@ -485,19 +482,19 @@ namespace Honorbuddy.Quest_Behaviors
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-                    return new DelayCompiledExpression<Func<WoWAreaTrigger, WoWPoint>>("AREATRIGGER=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWAreaTrigger, Vector3>>("AREATRIGGER=>" + expression);
 
                 case AvoidObjectType.DynamicObject:
-                    return new DelayCompiledExpression<Func<WoWDynamicObject, WoWPoint>>("DYNAMICOBJECT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWDynamicObject, Vector3>>("DYNAMICOBJECT=>" + expression);
 
                 case AvoidObjectType.GameObject:
-                    return new DelayCompiledExpression<Func<WoWGameObject, WoWPoint>>("GAMEOBJECT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWGameObject, Vector3>>("GAMEOBJECT=>" + expression);
 
                 case AvoidObjectType.Npc:
-                    return new DelayCompiledExpression<Func<WoWUnit, WoWPoint>>("UNIT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWUnit, Vector3>>("UNIT=>" + expression);
 
                 case AvoidObjectType.Missile:
-                    return new DelayCompiledExpression<Func<WoWMissile, WoWPoint>>("MISSILE=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWMissile, Vector3>>("MISSILE=>" + expression);
 
                 default:
                     return null;
@@ -546,19 +543,19 @@ namespace Honorbuddy.Quest_Behaviors
                 pred = o => o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
             }
 
-            Func<WoWObject, WoWPoint> locationProducer;
+            Func<WoWObject, Vector3> locationProducer;
             if (AvoidLocationProducer != null)
-                locationProducer = o => ((DelayCompiledExpression<Func<T, WoWPoint>>)AvoidLocationProducer).CallableExpression((T)o);
+                locationProducer = o => ((DelayCompiledExpression<Func<T, Vector3>>)AvoidLocationProducer).CallableExpression((T)o);
             else
                 locationProducer = null;
 
             return new AvoidObjectInfo(
-                ctx => true,
+                () => true,
                 pred,
                 o => Radius,
                 ignoreIfBlocking: IgnoreIfBlocking,
-                locationSelector: locationProducer,
-                leashPointSelector: LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null,
+                locationProducer: locationProducer,
+                leashPointSelector: LeashPoint.HasValue ? new Func<Vector3>(() => LeashPoint.Value) : null,
                 leashRadius: LeashRadius);
         }
 
@@ -579,20 +576,20 @@ namespace Honorbuddy.Quest_Behaviors
                     .Where(m => m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId));
             }
 
-            Func<object, WoWPoint> locationProducer;
+            Func<object, Vector3> locationProducer;
             if (AvoidLocationProducer != null)
-                locationProducer = o => ((DelayCompiledExpression<Func<WoWMissile, WoWPoint>>)AvoidLocationProducer).CallableExpression((WoWMissile)o);
+                locationProducer = o => ((DelayCompiledExpression<Func<WoWMissile, Vector3>>)AvoidLocationProducer).CallableExpression((WoWMissile)o);
             else
                 locationProducer = o => ((WoWMissile)o).ImpactPosition;
 
             return new AvoidLocationInfo(
-                ctx => true,
+                () => true,
                 locationProducer,
                 o => Radius,
-                LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null,
-                LeashRadius,
                 collectionProducer,
-                IgnoreIfBlocking);
+                LeashPoint.HasValue ? new Func<Vector3>(() => LeashPoint.Value) : null,
+                LeashRadius,
+                ignoreIfBlocking: IgnoreIfBlocking);
         }
     }
 }

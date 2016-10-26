@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Styx;
@@ -78,7 +79,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public static readonly IConstraintChecker<int> SpellId = new ConstrainTo.Domain<int>(1, int.MaxValue);
             public static readonly IConstraintChecker<string> StringNonEmpty = new ConstrainTo.NonEmptyString<string>();
             public static readonly IConstraintChecker<int> VehicleId = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<WoWPoint> WoWPointNonEmpty = new ConstrainTo.NonEmptyWoWPoint<WoWPoint>();
+            public static readonly IConstraintChecker<Vector3> Vector3NonEmpty = new ConstrainTo.NonEmptyVector3<Vector3>();
         }
 
 
@@ -140,15 +141,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 }
             }
 
-            public class NonEmptyWoWPoint<T> : IConstraintChecker<WoWPoint>
+            public class NonEmptyVector3<T> : IConstraintChecker<Vector3>
             {
-                public override string Check(string attributeName, WoWPoint value)
+                public override string Check(string attributeName, Vector3 value)
                 {
-                    if (value != WoWPoint.Empty)
+                    if (value != Vector3.Zero)
                     { return (null); }
 
-                    return (string.Format("The '{0}' attribute's value may not be the empty WoWPoint (e.g., {1}).",
-                                            attributeName, WoWPoint.Empty));
+                    return (string.Format("The '{0}' attribute's value may not be the empty Vector3 (e.g., {1}).",
+                                            attributeName, Vector3.Zero));
                 }
             }
 
@@ -189,9 +190,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public T[] GetAttributeAsArray<T>(string attributeName, bool isAttributeRequired, IConstraintChecker<T> constraints, string[] attributeNameAliases,
             char[] separatorCharacters)
         {
-            // WoWPoint are triples, so requires special handling...
-            if (typeof(T) == typeof(WoWPoint))
-            { return ((T[])UtilGetAttributeAsWoWPoints(attributeName, isAttributeRequired, attributeNameAliases)); }
+            // Vector3 are triples, so requires special handling...
+            if (typeof(T) == typeof(Vector3))
+            { return ((T[])UtilGetAttributeAsVector3s(attributeName, isAttributeRequired, attributeNameAliases)); }
 
 
             constraints = constraints ?? new ConstrainTo.Anything<T>();
@@ -254,14 +255,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public T[] GetNumberedAttributesAsArray<T>(string baseName, int countRequired, IConstraintChecker<T> constraints, IEnumerable<string> aliasBaseNames)
         {
             bool isError = false;
-            bool isWoWPoint = (typeof(T) == typeof(WoWPoint));
+            bool isVector3 = (typeof(T) == typeof(Vector3));
             var resultList = new List<T>();
 
             // Search for primary names first --
             // We 'continue' even if problems are encountered.  By doing this, the profile writer can see
             // all his mistakes at once, rather than being nickel-and-dimed to death with error messages.
             var primaryAttributeNames = from attributeName in Attributes.Keys
-                                        where UtilIsNumberedAttribute(baseName, attributeName, isWoWPoint)
+                                        where UtilIsNumberedAttribute(baseName, attributeName, isVector3)
                                         select attributeName;
 
             foreach (var numberedAttributeName in primaryAttributeNames)
@@ -276,7 +277,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 var aliasAttributeNames = from aliasBaseName in aliasBaseNames
                                           from attributeName in Attributes.Keys
-                                          where UtilIsNumberedAttribute(aliasBaseName, attributeName, isWoWPoint)
+                                          where UtilIsNumberedAttribute(aliasBaseName, attributeName, isVector3)
                                           select attributeName;
 
                 foreach (var numberedAttributeName in aliasAttributeNames)
@@ -317,15 +318,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             string baseName = nameFound;
 
-            // WoWPoints require special handling because there are three attributes comprising the value...
-            if (typeof(T) == typeof(WoWPoint))
+            // Vector3s require special handling because there are three attributes comprising the value...
+            if (typeof(T) == typeof(Vector3))
             {
                 // Adjust basename to remove X/Y/Z suffix...
                 if ((nameFound.EndsWith("X") || nameFound.EndsWith("Y") || nameFound.EndsWith("Z")))
                 { baseName = nameFound.Substring(0, nameFound.Length - 1); }
 
                 // If this is not the "X" key, and the "X" key exists, then skip processing...
-                // If we don't, then the WoWPoint will be placed into the list three times.
+                // If we don't, then the Vector3 will be placed into the list three times.
                 if (!nameFound.EndsWith("X") && Attributes.ContainsKey(baseName + "X"))
                 { return (false); }
             }
@@ -344,9 +345,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             Type concreteType = typeof(T);
 
-            // WoWPoint are a triple of attributes, so requires special handling...
-            if (concreteType == typeof(WoWPoint))
-            { return (UtilGetXYZAttributesAsWoWPoint(attributeName, isAttributeRequired, attributeNameAliases)); }
+            // Vector3 are a triple of attributes, so requires special handling...
+            if (concreteType == typeof(Vector3))
+            { return (UtilGetXYZAttributesAsVector3(attributeName, isAttributeRequired, attributeNameAliases)); }
 
 
             constraints = constraints ?? new ConstrainTo.Anything<T>();
@@ -379,11 +380,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        private object UtilGetAttributeAsWoWPoints(string attributeName, bool isAttributeRequired, string[] attributeNameAliases)
+        private object UtilGetAttributeAsVector3s(string attributeName, bool isAttributeRequired, string[] attributeNameAliases)
         {
             bool isError = false;
             string keyName = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
-            List<WoWPoint> pointList = new List<WoWPoint>();
+            List<Vector3> pointList = new List<Vector3>();
             char[] separatorCoordinate = { ' ', ',' };
             char[] separatorTriplet = { '|', ';' };
 
@@ -426,7 +427,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 catch (Exception) { isError = true; }
 
                 if (tmpValueX.HasValue && tmpValueY.HasValue && tmpValueZ.HasValue)
-                { pointList.Add(new WoWPoint(tmpValueX.Value, tmpValueY.Value, tmpValueZ.Value)); }
+                { pointList.Add(new Vector3((float)tmpValueX.Value, (float)tmpValueY.Value, (float)tmpValueZ.Value)); }
             }
 
             if (isError)
@@ -439,7 +440,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        private object UtilGetXYZAttributesAsWoWPoint(string attributeBaseName, bool isAttributeRequired, string[] attributeBaseNameAliases)
+        private object UtilGetXYZAttributesAsVector3(string attributeBaseName, bool isAttributeRequired, string[] attributeBaseNameAliases)
         {
             if (attributeBaseName == null)
             { attributeBaseName = ""; }
@@ -493,7 +494,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var z = (double?)UtilGetAttributeAs<double>(keyBase + "Z", isAttributeRequired, null, null);
 
             if (x.HasValue && y.HasValue && z.HasValue)
-            { return (new WoWPoint(x.Value, y.Value, z.Value)); }
+            { return (new Vector3((float)x.Value, (float)y.Value, (float)z.Value)); }
 
             return (null);
         }
@@ -501,12 +502,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         // Return true if attibuteName is composed of baseName plus an integer, or consists just of baseName.
         //              (baseName)   (attributeName)     (return value)
-        // Examples (allowWoWPointSuffixes = false):
+        // Examples (allowVector3Suffixes = false):
         //              MobId           MobId               true
         //              MobId           MobId27             true
         //              MobId           MobId27n            false
         //              MobId           MobIds              false
-        // WoWPoint Examples (allowWoWPointSuffixes = true):
+        // Vector3 Examples (allowVector3Suffixes = true):
         //              (empty)         X                   true
         //              (empty)         X27                 false
         //              (empty)         27X                 true
@@ -517,7 +518,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         //              Stand           Stand27Y            true
         //              Stand           StandY27n           false
         //              Stand           StandZs             false
-        private bool UtilIsNumberedAttribute(string baseName, string attributeName, bool allowWoWPointSuffixes)
+        private bool UtilIsNumberedAttribute(string baseName, string attributeName, bool allowVector3Suffixes)
         {
             if (!attributeName.StartsWith(baseName))
             { return (false); }
@@ -525,7 +526,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             string suffix = attributeName.Substring(baseName.Length);
 
             // Try to convert the suffix to an integral number.  If we fail, no match...
-            if (allowWoWPointSuffixes)
+            if (allowVector3Suffixes)
             {
                 if (suffix.EndsWith("X") || suffix.EndsWith("Y") || suffix.EndsWith("Z"))
                 { suffix = suffix.Substring(0, suffix.Length - 1); }

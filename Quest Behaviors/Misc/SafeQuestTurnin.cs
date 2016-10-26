@@ -30,12 +30,13 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using Bots.Quest.QuestOrder;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -62,7 +63,7 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 TurnInId = GetAttributeAsNullable<int>("TurnInId", true, ConstrainAs.MobId, null) ?? 0;
                 TurnInName = GetAttributeAs<string>("TurnInName", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                TurnInLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                TurnInLocation = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
             }
 
             catch (Exception except)
@@ -88,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int TurnInId { get; private set; }
         public string TurnInName { get; private set; }
-        public WoWPoint TurnInLocation { get; private set; }
+        public Vector3 TurnInLocation { get; private set; }
 
         // Private properties
         private ForcedQuestTurnIn QuestTurnIn { get; set; }
@@ -139,7 +140,8 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
             {
                 this.UpdateGoalText(QuestId);
 
-                QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInName, TurnInLocation);
+                QuestTurnIn = new ForcedQuestTurnIn(null, (uint)QuestId, QuestName, (uint)TurnInId, TurnInName,
+                                                    TurnInLocation);
 
                 if (QuestTurnIn == null)
                 { QBCLog.Fatal("Unable to complete {0}", this.GetType().Name); }

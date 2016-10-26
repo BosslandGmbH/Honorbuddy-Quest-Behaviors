@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
@@ -181,24 +182,24 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             if (_myHook == null)
                 return false;
 
-            QBCLog.Info("Removing hook");
-            TreeHooks.Instance.RemoveHook("Questbot_Profile", _myHook);
+                    QBCLog.Info("Removing hook");
+                    TreeHooks.Instance.RemoveHook("Questbot_Profile", _myHook);
 
             BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
             BotEvents.Profile.OnNewProfileLoaded -= Profile_OnNewProfileLoaded;
-            _myHook = null;
+                    _myHook = null;
             return true;
-        }
+                }
 
         private void Profile_OnNewProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
-        {
+                {
             RemoveHook();
-        }
+                }
 
         private void BotEvents_OnBotStopped(EventArgs args)
         {
             RemoveHook();
-        }
+            }
 
         public static Composite _myHook;
         public Composite CreateHook()
@@ -309,29 +310,29 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private const int GameObjectId_Ship_TheBravery = 176310;
         private const int GameObjectId_PortalToExodar = 207995;
 
-        private readonly WoWPoint _stormwindInnkeeperLoc = new WoWPoint(-8867.786, 673.6729, 97.90324);
-        private readonly WoWPoint _randalHunterLoc = new WoWPoint(-9442.742, -1390.666, 46.87045);
-        private readonly WoWPoint _katieHunterLoc = new WoWPoint(-9455.365, -1385.327, 47.12818);
-        private readonly WoWPoint _meiLinLoc = new WoWPoint(-8212.221, 547.569, 117.1947);
-        private readonly WoWPoint _oldWhitenoseLoc = new WoWPoint(-8209.379, 546.0261, 117.7684);
-        private readonly WoWPoint _binjyFeatherwhistleLoc = new WoWPoint(-5454.171, -621.048, 393.3968);
-        private readonly WoWPoint _milliFeatherwhistleLoc = new WoWPoint(-5454.171, -621.048, 393.3968);
-        private readonly WoWPoint _ulthamIronhornLoc = new WoWPoint(-5524.354, -1349.868, 398.6641);
-        private readonly WoWPoint _veronAmberstillLoc = new WoWPoint(-5539.55, -1322.55, 398.8653);
-        private readonly WoWPoint _jartsamLoc = new WoWPoint(10129.78, 2526.595, 1324.828);
-        private readonly WoWPoint _lelanaiLoc = new WoWPoint(10129.91, 2533.245, 1323.271);
-        private readonly WoWPoint _aalunLoc = new WoWPoint(-3981.769, -11929.14, -0.2419412);
-        private readonly WoWPoint _toralliusThePackHandlerLoc = new WoWPoint(-3981.769, -11929.14, -0.2419412);
-        private readonly WoWPoint _grundaBronzewingLoc = new WoWPoint(-674.4774, 2743.128, 93.9173);
-        private readonly WoWPoint _tannecStonebeakLoc = new WoWPoint(-8829.18, 482.34, 109.616);
+        private readonly Vector3 _stormwindInnkeeperLoc = new Vector3(-8867.786f, 673.6729f, 97.90324f);
+        private readonly Vector3 _randalHunterLoc = new Vector3(-9442.742f, -1390.666f, 46.87045f);
+        private readonly Vector3 _katieHunterLoc = new Vector3(-9455.365f, -1385.327f, 47.12818f);
+        private readonly Vector3 _meiLinLoc = new Vector3(-8212.221f, 547.569f, 117.1947f);
+        private readonly Vector3 _oldWhitenoseLoc = new Vector3(-8209.379f, 546.0261f, 117.7684f);
+        private readonly Vector3 _binjyFeatherwhistleLoc = new Vector3(-5454.171f, -621.048f, 393.3968f);
+        private readonly Vector3 _milliFeatherwhistleLoc = new Vector3(-5454.171f, -621.048f, 393.3968f);
+        private readonly Vector3 _ulthamIronhornLoc = new Vector3(-5524.354f, -1349.868f, 398.6641f);
+        private readonly Vector3 _veronAmberstillLoc = new Vector3(-5539.55f, -1322.55f, 398.8653f);
+        private readonly Vector3 _jartsamLoc = new Vector3(10129.78f, 2526.595f, 1324.828f);
+        private readonly Vector3 _lelanaiLoc = new Vector3(10129.91f, 2533.245f, 1323.271f);
+        private readonly Vector3 _aalunLoc = new Vector3(-3981.769f, -11929.14f, -0.2419412f);
+        private readonly Vector3 _toralliusThePackHandlerLoc = new Vector3(-3981.769f, -11929.14f, -0.2419412f);
+        private readonly Vector3 _grundaBronzewingLoc = new Vector3(-674.4774f, 2743.128f, 93.9173f);
+        private readonly Vector3 _tannecStonebeakLoc = new Vector3(-8829.18f, 482.34f, 109.616f);
 
-        private readonly WoWPoint _theBraveryStartLoc = new WoWPoint(-8650.719, 1346.051, -0.0382334);
-        private readonly WoWPoint _theBraveryEndLoc = new WoWPoint(8162.587, 1005.365, 0.0474023);
-        private readonly WoWPoint _theBraveryWaitAtLoc = new WoWPoint(-8640.556, 1330.829, 5.233207);
-        private readonly WoWPoint _theBraveryStandAtLoc = new WoWPoint(-8644.952, 1348.11, 6.143094);
-        private readonly WoWPoint _theBraveryGetOffAtLoc = new WoWPoint(8177.54, 1003.079, 6.646164);
+        private readonly Vector3 _theBraveryStartLoc = new Vector3(-8650.719f, 1346.051f, -0.0382334f);
+        private readonly Vector3 _theBraveryEndLoc = new Vector3(8162.587f, 1005.365f, 0.0474023f);
+        private readonly Vector3 _theBraveryWaitAtLoc = new Vector3(-8640.556f, 1330.829f, 5.233207f);
+        private readonly Vector3 _theBraveryStandAtLoc = new Vector3(-8644.952f, 1348.11f, 6.143094f);
+        private readonly Vector3 _theBraveryGetOffAtLoc = new Vector3(8177.54f, 1003.079f, 6.646164f);
 
-        private readonly WoWPoint _exodarPortalLoc = new WoWPoint(9655.252, 2509.33, 1331.598);
+        private readonly Vector3 _exodarPortalLoc = new Vector3(9655.252f, 2509.33f, 1331.598f);
 
         private async Task<bool> PurchaseGroundMount_Alliance()
         {
@@ -478,27 +479,27 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private const int ItemId_BlackHawkstrider = 29221;
         private const int ItemId_TawnyWindRider = 25474;
 
-        private readonly WoWPoint _orgrimmarInnkeeperLoc = new WoWPoint(1573.266, -4439.158, 16.05631);
-        private readonly WoWPoint _ogunaroWolfrunnerLoc = new WoWPoint(2076.602, -4568.632, 49.25319);
-        private readonly WoWPoint _kallWorthatonLoc = new WoWPoint(1475.32, -4140.98, 52.51);
-        private readonly WoWPoint _zjolnirLoc = new WoWPoint(-852.78, -4885.40, 22.03);
-        private readonly WoWPoint _harbClawhoofLoc = new WoWPoint(-2279.796, -392.0697, -9.396863);
-        private readonly WoWPoint _zachariahPostLoc = new WoWPoint(2275.08, 237.00, 33.69);
-        private readonly WoWPoint _winaestraLoc = new WoWPoint(9244.59, -7491.566, 36.91401);
-        private readonly WoWPoint _velmaWarnamLoc = new WoWPoint(2275.08, 236.997, 33.69074);
-        private readonly WoWPoint _softpawsLoc = new WoWPoint(2010.891, -4722.866, 29.3442);
-        private readonly WoWPoint _turtlemasterOdaiLoc = new WoWPoint(2009.267, -4721.249, 29.51483);
-        private readonly WoWPoint _banaWildmaneLoc = new WoWPoint(47.76153, 2742.022, 85.27119);
-        private readonly WoWPoint _drakmaLoc = new WoWPoint(1806.94, -4340.67, 102.0506);
+        private readonly Vector3 _orgrimmarInnkeeperLoc = new Vector3(1573.266f, -4439.158f, 16.05631f);
+        private readonly Vector3 _ogunaroWolfrunnerLoc = new Vector3(2076.602f, -4568.632f, 49.25319f);
+        private readonly Vector3 _kallWorthatonLoc = new Vector3(1475.32f, -4140.98f, 52.51f);
+        private readonly Vector3 _zjolnirLoc = new Vector3(-852.78f, -4885.40f, 22.03f);
+        private readonly Vector3 _harbClawhoofLoc = new Vector3(-2279.796f, -392.0697f, -9.396863f);
+        private readonly Vector3 _zachariahPostLoc = new Vector3(2275.08f, 237.00f, 33.69f);
+        private readonly Vector3 _winaestraLoc = new Vector3(9244.59f, -7491.566f, 36.91401f);
+        private readonly Vector3 _velmaWarnamLoc = new Vector3(2275.08f, 236.997f, 33.69074f);
+        private readonly Vector3 _softpawsLoc = new Vector3(2010.891f, -4722.866f, 29.3442f);
+        private readonly Vector3 _turtlemasterOdaiLoc = new Vector3(2009.267f, -4721.249f, 29.51483f);
+        private readonly Vector3 _banaWildmaneLoc = new Vector3(47.76153f, 2742.022f, 85.27119f);
+        private readonly Vector3 _drakmaLoc = new Vector3(1806.94f, -4340.67f, 102.0506f);
 
-        private readonly WoWPoint _theThundercallerKalimdorLoc = new WoWPoint(1833.509, -4391.543, 152.7679);
-        private readonly WoWPoint _theThundercallerKalimdorWaitLoc = new WoWPoint(1845.187, -4395.555, 135.2306);
-        private readonly WoWPoint _theThundercallerKalimdorBoardLoc = new WoWPoint(1835.509, -4385.785, 135.0436);
-        private readonly WoWPoint _theThundercallerEKLoc = new WoWPoint(2062.376, 292.998, 114.973);
-        private readonly WoWPoint _theThundercallerEKWaitLoc = new WoWPoint(2065.049, 283.1381, 97.03156);
-        private readonly WoWPoint _theThundercallerEKBoardLoc = new WoWPoint(2067.672f, 294.2617f, 97.20473f);
+        private readonly Vector3 _theThundercallerKalimdorLoc = new Vector3(1833.509f, -4391.543f, 152.7679f);
+        private readonly Vector3 _theThundercallerKalimdorWaitLoc = new Vector3(1845.187f, -4395.555f, 135.2306f);
+        private readonly Vector3 _theThundercallerKalimdorBoardLoc = new Vector3(1835.509f, -4385.785f, 135.0436f);
+        private readonly Vector3 _theThundercallerEKLoc = new Vector3(2062.376f, 292.998f, 114.973f);
+        private readonly Vector3 _theThundercallerEKWaitLoc = new Vector3(2065.049f, 283.1381f, 97.03156f);
+        private readonly Vector3 _theThundercallerEKBoardLoc = new Vector3(2067.672f, 294.2617f, 97.20473f);
 
-        private readonly WoWPoint _silvermoonCityPortalLoc = new WoWPoint(1805.877, 345.0006, 70.79002);
+        private readonly Vector3 _silvermoonCityPortalLoc = new Vector3(1805.877f, 345.0006f, 70.79002f);
 
         private const int GameObjectId_Ship_TheThundercaller = 164871;
         private const uint GameObjectId_OrbOfTranslocation = 184503;
@@ -669,10 +670,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         private async Task<bool> TurninQuestAndBuyMount(
             int turninId,
-            WoWPoint turninLoc,
+            Vector3 turninLoc,
             uint questId,
             int vendorId,
-            WoWPoint vendorLocation,
+            Vector3 vendorLocation,
             int itemId)
         {
             // Turnin the 'Learn to Ride' quest if in log
@@ -695,7 +696,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             var trainer = ObjectManager.GetObjectsOfType<WoWUnit>()
                                  .Where(u => u.Entry == trainerId && !u.IsDead)
                                  .OrderBy(u => u.DistanceSqr).FirstOrDefault();
-            WoWPoint trainerLoc;
+            Vector3 trainerLoc;
             string trainerName;
             if (trainer == null)
             {
@@ -733,7 +734,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             return true;
         }
 
-        private async Task<bool> BuyMount(int vendorId, WoWPoint vendorLocation, int itemId)
+        private async Task<bool> BuyMount(int vendorId, Vector3 vendorLocation, int itemId)
         {
             var item = Me.BagItems.FirstOrDefault(i => i.Entry == itemId);
 

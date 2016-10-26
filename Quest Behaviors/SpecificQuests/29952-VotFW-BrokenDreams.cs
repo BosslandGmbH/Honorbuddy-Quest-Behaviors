@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -142,7 +142,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BrokenDreams
         }
 
         public delegate float DynamicRangeRetriever(object context);
-        public delegate WoWPoint LocationRetriever(object context);
+        public delegate Vector3 LocationRetriever(object context);
         public delegate WoWUnit UnitSelectionDelegate(object context);
 
 
@@ -209,7 +209,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BrokenDreams
 
 
         //<Vendor Name="Chen Stormstout" Entry="56649" Type="Repair" X="-747.4998" Y="1322.313" Z="146.7143" />
-        private WoWPoint _point1 = new WoWPoint(-747.4998, 1322.313, 146.7143);
+        private Vector3 _point1 = new Vector3(-747.4998f, 1322.313f, 146.7143f);
         public Composite StepOne
         {
             get
@@ -227,7 +227,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BrokenDreams
 
         //<Vendor Name="Chen Stormstout" Entry="56649" Type="Repair" X="-805.5576" Y="1272.881" Z="146.6652" />
         //<Vendor Name="Wuk-Wuk" Entry="56691" Type="Repair" X="-806.7507" Y="1276.348" Z="146.6656" />
-        private WoWPoint _point2 = new WoWPoint(-805.5576, 1272.881, 146.6652);
+        private Vector3 _point2 = new Vector3(-805.5576f, 1272.881f, 146.6652f);
         public Composite StepTwo
         {
             get
@@ -244,13 +244,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BrokenDreams
         }
 
         //<Vendor Name="Uncle Gao" Entry="56680" Type="Repair" X="-751.9271" Y="1334.837" Z="162.6358" />
-        private WoWPoint _point3 = new WoWPoint(-751.9271, 1334.837, 162.6358);
+        private Vector3 _point3 = new Vector3(-751.9271f, 1334.837f, 162.6358f);
         //Stupid ass game doesnt detect that you walked close sometimes, so we need todo some stupid shit
 
         private int _bouncestage = 0;
 
         //<Vendor Name="Chen Stormstout" Entry="56649" Type="Repair" X="-769.0266" Y="1274.853" Z="162.7204" />
-        private WoWPoint _bounce = new WoWPoint(-769.0266, 1274.853, 162.7204);
+        private Vector3 _bounce = new Vector3(-769.0266f, 1274.853f, 162.7204f);
 
         public Composite Move
         {

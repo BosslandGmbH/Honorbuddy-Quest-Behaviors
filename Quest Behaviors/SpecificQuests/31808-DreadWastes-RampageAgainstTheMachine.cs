@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Buddy.Coroutines;
@@ -83,12 +84,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
         private const uint KovokId = 63765;
 
 
-        private readonly WoWPoint _kovokLoc = new WoWPoint(-59.68924, 3421.45, 103.9458);
+        private readonly Vector3 _kovokLoc = new Vector3(-59.68924f, 3421.45f, 103.9458f);
 
-        private CircularQueue<WoWPoint> _path = new CircularQueue<WoWPoint>()
+        private CircularQueue<Vector3> _path = new CircularQueue<Vector3>()
                                                 {
-                                                    new WoWPoint(-193.5827, 3167.077, 118.4438),
-                                                    new WoWPoint(-90.43753, 3857.049, 163.7572)
+                                                    new Vector3(-193.5827f, 3167.077f, 118.4438f),
+                                                    new Vector3(-90.43753f, 3857.049f, 163.7572f)
                                                 };
 
         private Composite _root;
@@ -132,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
                     return true;
                 }
                 // move to waypoints searching for targets.
-                if (transport.Location.DistanceSqr(_path.Peek()) < 15 * 15)
+                if (transport.Location.DistanceSquared(_path.Peek()) < 15 * 15)
                     _path.Dequeue();
                 return (await CommonCoroutines.MoveTo(_path.Peek())).IsSuccessful();
             }
@@ -151,7 +152,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
             }
 
 
-            if (transport.Location.DistanceSqr(ct.Location) > 35 * 35)
+            if (transport.Location.DistanceSquared(ct.Location) > 35 * 35)
                 return (await CommonCoroutines.MoveTo(ct.Location)).IsSuccessful();
 
             if (!transport.IsSafelyFacing(ct, 40))

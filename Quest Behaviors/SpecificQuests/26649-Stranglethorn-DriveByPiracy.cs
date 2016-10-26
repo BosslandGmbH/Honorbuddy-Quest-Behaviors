@@ -79,7 +79,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
                 return
                     ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
                         .Where(u => u.Entry == VentureCoOilWorkerId && u.IsAlive)
-                        .OrderBy(u => u.Location.DistanceSqr(myLoc))
+                        .OrderBy(u => u.Location.DistanceSquared(myLoc))
                         .FirstOrDefault();
             }
         }

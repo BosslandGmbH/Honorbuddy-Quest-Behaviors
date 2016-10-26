@@ -48,12 +48,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -94,7 +95,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                 // TUNABLES--
                 // If we can't find suitable mobs, we move back towards our Anchor point...
-                HuntingGroundAnchorPoint = new WoWPoint(1558.958, 3601.467, 213.1995).FanOutRandom(25.0);
+                HuntingGroundAnchorPoint = new Vector3(1558.958f, 3601.467f, 213.1995f).FanOutRandom(25.0);
                 HuntingGroundAnchorRadius = 50; //yards
 
 
@@ -117,9 +118,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 NoCompeteDistance = 25.0; //yards
 
                 // Avoid pulling mobs or kegs in these areas...
-                Blackspots.Add(Tuple.Create(new WoWPoint(1383.731, 3555.141, 227.2891), 40.0f));
-                Blackspots.Add(Tuple.Create(new WoWPoint(1423.977, 3550.332, 225.0677), 40.0f));
-                Blackspots.Add(Tuple.Create(new WoWPoint(1469.307, 3533.847, 232.4593), 45.0f));
+                Blackspots.Add(Tuple.Create(new Vector3(1383.731f, 3555.141f, 227.2891f), 40.0f));
+                Blackspots.Add(Tuple.Create(new Vector3(1423.977f, 3550.332f, 225.0677f), 40.0f));
+                Blackspots.Add(Tuple.Create(new Vector3(1469.307f, 3533.847f, 232.4593f), 45.0f));
             }
 
             catch (Exception except)
@@ -141,8 +142,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         // Variables for Attributes provided by caller
         public int AuraId_KegBomb { get; private set; }
         public int AuraId_Timberhusk { get; private set; }
-        public List<Tuple<WoWPoint, float>> Blackspots = new List<Tuple<WoWPoint, float>>();
-        public WoWPoint HuntingGroundAnchorPoint { get; private set; }
+        public List<Tuple<Vector3, float>> Blackspots = new List<Tuple<Vector3, float>>();
+        public Vector3 HuntingGroundAnchorPoint { get; private set; }
         public double HuntingGroundAnchorRadius { get; private set; }
         public double KegBombMaxRange { get; private set; }
         public double KegBombReleaseRange { get; private set; }
@@ -159,7 +160,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
 
         #region Private and Convenience variables
-        public delegate WoWPoint LocationDelegate(object context);
+        public delegate Vector3 LocationDelegate(object context);
         public delegate string StringDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
@@ -192,9 +193,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         private double CombatMaxEngagementRangeDistance { get { return 23.0; } }
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private WoWUnit SelectedKegBomb { get; set; }
-        private WoWPoint SelectedKegBombAimPosition { get; set; }
+        private Vector3 SelectedKegBombAimPosition { get; set; }
         private WoWDynamicObject SelectedPitchTippedArrow { get; set; }
-        private WoWPoint SelectedPitchTippedArrowAimLocation { get; set; }
+        private Vector3 SelectedPitchTippedArrowAimLocation { get; set; }
         private WoWUnit SelectedTarget
         {
             get { return _selectedTarget; }
@@ -426,8 +427,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                     // We strayed too far from hunting ground center, so move back...
                     new SwitchArgument<StateType_Behavior>(StateType_Behavior.MovingToHuntingGroundAnchor,
                         new PrioritySelector(
-                            new Decorator(context => CharacterSettings.Instance.UseMount == false,
-                                new Action(context => { CharacterSettings.Instance.UseMount = true; })),
+                            new Decorator(context => CharacterSettings.Instance.UseGroundMount == false,
+                                new Action(context => { CharacterSettings.Instance.UseGroundMount = true; })),
 
                             // Move back to anchor point...
                             new Decorator(context => Me.Location.Distance(HuntingGroundAnchorPoint) > HuntingGroundAnchorRadius,
@@ -441,10 +442,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             // At anchor point, time to start hunting again...
                             new Decorator(context => Me.Mounted,
                                 new Sequence(
-                                    new Mount.ActionLandAndDismount(),
+                                    new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount()),
                                     new Action(context =>
                                     {
-                                        CharacterSettings.Instance.UseMount = false;
+                                        CharacterSettings.Instance.UseGroundMount = false;
                                     }))),
 
                             new Action(context => { State_Behavior = StateType_Behavior.Hunting; })
@@ -488,7 +489,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
 
         #region Helpers
-        private WoWPoint CalculateKegBombAimPosition(WoWUnit target, WoWUnit kegBomb)
+        private Vector3 CalculateKegBombAimPosition(WoWUnit target, WoWUnit kegBomb)
         {
             return
                 WoWMathHelper.CalculatePointFrom(
@@ -498,7 +499,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         }
 
 
-        private WoWPoint CalculatePositionToPutMobInGroundEffect(WoWUnit hostileTarget, WoWDynamicObject groundEffect)
+        private Vector3 CalculatePositionToPutMobInGroundEffect(WoWUnit hostileTarget, WoWDynamicObject groundEffect)
         {
             return WoWMathHelper.CalculatePointFrom(
                 groundEffect.Location,
@@ -692,7 +693,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                 SelectedPitchTippedArrowAimLocation = CalculatePositionToPutMobInGroundEffect(SelectedTarget,
                                                                                                                 SelectedPitchTippedArrow);
 
-                                if (SelectedPitchTippedArrowAimLocation != WoWPoint.Empty)
+                                if (SelectedPitchTippedArrowAimLocation != Vector3.Zero)
                                 { State_MobDrag = StateType_PitchTipArrowDragging.DraggingMobToPitchTippedGroundEffect; }
                             }
 
@@ -743,13 +744,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                                                                         SelectedPitchTippedArrowAimLocation);
                                 neededFacing = WoWMathHelper.NormalizeRadian(neededFacing + (float)Math.PI);
 
-                                if (Me.RenderFacing != neededFacing)
+                                if (Math.Abs(WoWMathHelper.AngularDifference(Me.Rotation, neededFacing)) < WoWMathHelper.DegreesToRadians(5))
                                 { Me.SetFacing(neededFacing); }
 
-                                if ((((float)distanceToAimPositionContext) > Navigator.PathPrecision) && !Me.IsMoving)
+                                if (!Navigator.AtLocation(SelectedPitchTippedArrowAimLocation) && !Me.IsMoving)
                                 {
-                                    QBCLog.Info("Dragging mob into Pitch Arrow ground-effect.",
-                                        (float)distanceToAimPositionContext);
+                                    QBCLog.Info("Dragging mob into Pitch Arrow ground-effect.");
                                     WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
                                 }
 
@@ -782,7 +782,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                         {
                             SeriouslyStop();
                             SelectedPitchTippedArrow = null;
-                            SelectedPitchTippedArrowAimLocation = WoWPoint.Empty;
+                            SelectedPitchTippedArrowAimLocation = Vector3.Zero;
                             State_MobDrag = StateType_PitchTipArrowDragging.LookingForPitchTippedGroundEffects;
                             QBCLog.Info("Dragging complete");
 
@@ -950,8 +950,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             new Decorator(roughAimPositionContext => Me.GotAlivePet && SelectedTarget.PetAggro,
                                 new PrioritySelector(
                                     // Just wait, if both pet and mob are out of bomb-launching range...
-                                    new Decorator(roughAimPositionContext => (Me.Pet.Location.Distance((WoWPoint)roughAimPositionContext) > KegBombReleaseRange)
-                                                                || (SelectedTarget.Location.Distance((WoWPoint)roughAimPositionContext) > KegBombReleaseRange),
+                                    new Decorator(roughAimPositionContext => (Me.Pet.Location.Distance((Vector3)roughAimPositionContext) > KegBombReleaseRange)
+                                                                || (SelectedTarget.Location.Distance((Vector3)roughAimPositionContext) > KegBombReleaseRange),
                                         new PrioritySelector(
                                             // Bring pet to us while we pull mob within range of bomb...
                                             PetBehavior_SetStance(context => "Passive"),
@@ -967,14 +967,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                 )),
 
                             // Move self to the Keg Bomb rough aiming position for Keg Bomb...
-                            new Decorator(roughAimPositionContext => !Navigator.AtLocation((WoWPoint)roughAimPositionContext),
+                            new Decorator(roughAimPositionContext => !Navigator.AtLocation((Vector3)roughAimPositionContext),
                                 new Action(roughAimPositionContext =>
                                 {
                                     QBCLog.Info("Moving to Keg Bomb (dist: {0:F1})",
-                                        Me.Location.Distance((WoWPoint)roughAimPositionContext));
-                                    Navigator.MoveTo((WoWPoint)roughAimPositionContext);
+                                        Me.Location.Distance((Vector3)roughAimPositionContext));
+                                    Navigator.MoveTo((Vector3)roughAimPositionContext);
                                 })),
-                            new Mount.ActionLandAndDismount(),
+                            new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount()),
                             new Decorator(context => Me.IsMoving,
                                 new Action(context => { WoWMovement.MoveStop(); })),
                             new Decorator(context => !Me.IsFacing(SelectedKegBomb),
@@ -988,13 +988,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                 // It will be the same as the "rough" position we were previously using unless the mob
                                 // has altered course while approaching the Keg Bomb.  We "lock in" the fine aim here,
                                 // so we don't 'dance' around the barrel.  If we miss, we miss.
-                                new Decorator(context => SelectedKegBombAimPosition == WoWPoint.Empty,
+                                new Decorator(context => SelectedKegBombAimPosition == Vector3.Zero,
                                     new Action(context =>
                                     {
                                         SelectedKegBombAimPosition =
                                             CalculateKegBombAimPosition(SelectedTarget, SelectedKegBomb);
 
-                                        if (SelectedKegBombAimPosition == WoWPoint.Empty)
+                                        if (SelectedKegBombAimPosition == Vector3.Zero)
                                         {
                                             QBCLog.Warning("Unable to calculate aim position for Keg Bomb--blacklisting Keg Bomb.");
                                             State_KegBomb = StateType_KegBomb.BombUseComplete;
@@ -1003,7 +1003,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                                 new Decorator(context => !Navigator.AtLocation(SelectedKegBombAimPosition),
                                     new Action(context => { Navigator.MoveTo(SelectedKegBombAimPosition); })),
-                                new Mount.ActionLandAndDismount(),
+                                new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
                                 new Decorator(context => Me.IsMoving,
                                     new Action(context => { WoWMovement.MoveStop(); })),
                                 new Decorator(context => !Me.IsFacing(SelectedKegBomb),
@@ -1062,7 +1062,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             {
                                 Blacklist.Add(SelectedKegBomb, BlacklistFlags.Combat, TimeSpan.FromMinutes(2));
                                 SelectedKegBomb = null;
-                                SelectedKegBombAimPosition = WoWPoint.Empty;
+                                SelectedKegBombAimPosition = Vector3.Zero;
                             }
 
                             // If mob is not aggro'd on us, clear it, and re-evaluate the battlefield...
@@ -1173,157 +1173,5 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         }
         #endregion
     }
-
-
-    #region WoWPoint_Extensions
-    public static class WoWPoint_Extensions
-    {
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
-
-
-        public static WoWPoint Add(this WoWPoint wowPoint,
-                                    double x,
-                                    double y,
-                                    double z)
-        {
-            return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
-        }
-
-
-        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
-                                           double xyHeadingInRadians,
-                                           double distance,
-                                           double zModifier)
-        {
-            return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
-                                 (Math.Sin(xyHeadingInRadians) * distance),
-                                 zModifier));
-        }
-
-
-        // Finds another point near the destination.  Useful when toon is 'waiting' for something
-        // (e.g., boat, mob repops, etc). This allows multiple people running
-        // the same profile to not stand on top of each other while waiting for
-        // something.
-        public static WoWPoint FanOutRandom(this WoWPoint location,
-                                                double maxRadius)
-        {
-            const int CYLINDER_LINE_COUNT = 12;
-            const int MAX_TRIES = 50;
-            const double SAFE_DISTANCE_BUFFER = 1.75;
-
-            WoWPoint candidateDestination = location;
-            int tryCount;
-
-            // Most of the time we'll find a viable spot in less than 2 tries...
-            // However, if you're standing on a pier, or small platform a
-            // viable alternative may take 10-15 tries--its all up to the
-            // random number generator.
-            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
-            {
-                WoWPoint circlePoint;
-                bool[] hitResults;
-                WoWPoint[] hitPoints;
-                int index;
-                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
-
-                candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
-
-                // Build set of tracelines that can evaluate the candidate destination --
-                // We build a cone of lines with the cone's base at the destination's 'feet',
-                // and the cone's point at maxRadius over the destination's 'head'.  We also
-                // include the cone 'normal' as the first entry.
-
-                // 'Normal' vector
-                index = 0;
-                traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
-
-                // Cylinder vectors
-                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
-                {
-                    ++index;
-                    circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
-                    traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
-                }
-
-
-                // Evaluate the cylinder...
-                // The result for the 'normal' vector (first one) will be the location where the
-                // destination meets the ground.  Before this MassTrace, only the candidateDestination's
-                // X/Y values were valid.
-                GameWorld.MassTraceLine(traceLines.ToArray(),
-                                        TraceLineHitFlags.Collision,
-                                        out hitResults,
-                                        out hitPoints);
-
-                candidateDestination = hitPoints[0];    // From 'normal', Destination with valid Z coordinate
-
-
-                // Sanity check...
-                // We don't want to be standing right on the edge of a drop-off (say we'e on
-                // a plaform or pier).  If there is not solid ground all around us, we reject
-                // the candidate.  Our test for validity is that the walking distance must
-                // not be more than 20% greater than the straight-line distance to the point.
-                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
-                                                                      ? 1
-                                                                      : 0));
-
-                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
-                { continue; }
-
-                // If new destination is 'too close' to our current position, try again...
-                if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                { continue; }
-
-                break;
-            }
-
-            // If we exhausted our tries, just go with simple destination --
-            if (tryCount <= 0)
-            { candidateDestination = location; }
-
-            return (candidateDestination);
-        }
-
-
-        public static double SurfacePathDistance(this WoWPoint start,
-                                                    WoWPoint destination)
-        {
-            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-
-            // We define an invalid path to be of 'infinite' length
-            if (groundPath.Length <= 0)
-            { return (double.MaxValue); }
-
-
-            double pathDistance = start.Distance(groundPath[0]);
-
-            for (int i = 0; i < (groundPath.Length - 1); ++i)
-            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
-
-            return (pathDistance);
-        }
-
-
-        // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint WaterSurface(this WoWPoint location)
-        {
-            WoWPoint hitLocation;
-            bool hitResult;
-            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
-
-            hitResult = GameWorld.TraceLine(locationUpper,
-                                             locationLower,
-                                             TraceLineHitFlags.LiquidAll,
-                                             out hitLocation);
-
-            return (hitResult ? hitLocation : WoWPoint.Empty);
-        }
-    }
-    #endregion
 }
 

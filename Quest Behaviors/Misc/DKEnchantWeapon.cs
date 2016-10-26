@@ -13,7 +13,7 @@
 // A QuestBehavior that checks if you have the correct runeforge on your weapon.
 // If you don't, it will take you to Acherus and runeforge it, then take you back to where you were.
 
-// How to use : <CustomBehavior File="Misc\DKEnchantWeapon" SpellID="xxxxx" />
+// How to use : <CustomBehavior File="Misc\DKEnchantWeapon" SpellID="xxxxx" /> 
 // Where xxxxx is:
 // 53341 - Rune of Cinderglacier
 // 53331 - Rune of Lichbane
@@ -44,6 +44,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using Styx.Common;
 #endregion
 
 
@@ -297,8 +298,8 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         /// <summary>
-        ///     Returns an item link for an item in the unit's inventory. The player's inventory is actually extended to include items in the bank,
-        ///     items in the player's containers and the player's key ring in addition to the items the player has equipped. The appropriate inventoryID
+        ///     Returns an item link for an item in the unit's inventory. The player's inventory is actually extended to include items in the bank, 
+        ///     items in the player's containers and the player's key ring in addition to the items the player has equipped. The appropriate inventoryID 
         ///     can be found by calling the appropriate function.
         /// </summary>
         /// <param name="pUnit">A unit to query; only valid for 'player' or the unit currently being inspected (string, unitID)</param>

@@ -20,7 +20,7 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -46,12 +46,12 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
+                // ...and also used for IsDone processing.            
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
 
                 Counter = 1;
             }
@@ -71,7 +71,7 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
         // DON'T EDIT THIS--it is auto-populated by Git
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int QuestId { get; private set; }
         private Composite _root;
         public int Counter { get; private set; }

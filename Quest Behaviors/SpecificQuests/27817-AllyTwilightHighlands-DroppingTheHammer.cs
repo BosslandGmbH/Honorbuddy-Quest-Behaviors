@@ -170,13 +170,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
                         {
                             var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, 10f);
 
-                            if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
-                            {
-                                Navigator.MoveTo(moveTo);
-                                return RunStatus.Success;
-                            }
-
-                            return RunStatus.Failure;
+                            return Navigator.GetRunStatusFromMoveResult(Navigator.MoveTo(moveTo));
                         })),
                         new Decorator(r => !Me.IsOnTransport && Me.Combat,
                             DoDps)));

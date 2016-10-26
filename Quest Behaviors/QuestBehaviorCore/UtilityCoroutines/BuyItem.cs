@@ -12,6 +12,7 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 
 using Buddy.Coroutines;
@@ -50,7 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> BuyItem(
             int wowObjectId,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             int itemId,
             int quantity,
             MovementByType movementBy = MovementByType.FlightorPreferred,
@@ -98,7 +99,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> BuyItem(
             WoWObject wowObject,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             int itemId,
             int quantity,
             MovementByType movementBy = MovementByType.FlightorPreferred,

@@ -156,11 +156,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -191,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "MobID", "NpcId" });
                 SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, new[] { "SpellID" }) ?? 0;
                 VehicleIds = GetNumberedAttributesAsArray<int>("VehicleId", 1, ConstrainAs.VehicleId, new[] { "VehicleID" });
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Destination = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 // Tunables...
                 NumOfTimes = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
@@ -247,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         // Attributes provided by caller
         public int AuraId_ProxyVehicle { get; private set; }
         public int CastTime { get; private set; }
-        public WoWPoint Destination { get; private set; }
+        public Vector3 Destination { get; private set; }
         public bool Hop { get; private set; }
         public bool IgnoreCombat { get; private set; }
         public int[] MobIds { get; private set; }
@@ -261,7 +263,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         #region Private and Convenience variables
         private IEnumerable<int> AuraIds_OccupiedVehicle { get; set; }
         private int CastCounter { get; set; }
-        private WoWPoint FinalDestination { get; set; }
+        private Vector3 FinalDestination { get; set; }
         private string FinalDestinationName { get; set; }
         private bool DidSuccessfullyMount { get; set; }
         private WoWUnit VehicleUnoccupied { get; set; }
@@ -386,7 +388,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                         interactUnitContext => UtilityCoroutine.MoveTo(
                                             VehicleUnoccupied.Location,
                                             VehicleUnoccupied.SafeName,
-                                            MovementBy))
+                                            MovementBy,
+                                            VehicleUnoccupied.InteractRange))
                                 )),
 
                             // If we can't find a vehicle, terminate if requested...

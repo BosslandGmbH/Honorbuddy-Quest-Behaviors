@@ -61,6 +61,10 @@
 //			If set to true, FLYTO will land upon reaching the destination.
 //			The toon will look for a suitable landing site (on rough terrain), so
 //			the final location may not be the same as that specified in X/Y/Z.
+//      MinHeight [optional]
+//          This is passed to the FlyToParameters.
+//          Used for keeping the toon at least MinHeight yards above the ground and checking if we have an
+//          object on top of us (like buildings etc.) to determine if we should find a take off location.
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
@@ -179,6 +183,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -188,6 +193,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -214,20 +220,22 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 DefaultAllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null)
                     ?? 0.0;
                 DefaultArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, new ConstrainTo.Domain<double>(1.5, 30.0), new string[] { "Distance" })
-                    ?? 1.5;
-                DefaultDestination = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
+                    ?? 3;
+                DefaultDestination = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null);
                 DefaultDestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" })
                                          ?? ((DefaultDestination != null) ? DefaultDestination.ToString() : string.Empty);
                 IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
                 Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
+                MinHeight = GetAttributeAsNullable("MinHeight", false, new ConstrainTo.Domain<float>(0, 200),
+                    null);
 
                 // 'Destination choices' processing...
                 PotentialDestinations =
                     HuntingGroundsType.GetOrCreate(Element,
                                                    "DestinationChoices",
-                                                   (DefaultDestination.HasValue
+                                                   DefaultDestination.HasValue
                                                     ? new WaypointType(DefaultDestination.Value, DefaultDestinationName, DefaultAllowedVariance, DefaultArrivalTolerance)
-                                                    : null));
+                                                    : null, DefaultArrivalTolerance);
                 IsAttributeProblem |= PotentialDestinations.IsAttributeProblem;
             }
 
@@ -258,16 +266,17 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
         // Attributes provided by caller
         private double DefaultArrivalTolerance { get; set; }
-        private WoWPoint? DefaultDestination { get; set; }
+        private Vector3? DefaultDestination { get; set; }
         private string DefaultDestinationName { get; set; }
         private double DefaultAllowedVariance { get; set; }
         private bool Land { get; set; }
         private bool IgnoreIndoors { get; set; }
+        private float? MinHeight { get; set; }
         #endregion
 
 
         #region Private and Convenience variables
-        private WoWPoint? FinalDestination { get; set; }
+        private Vector3? FinalDestination { get; set; }
         private WaypointType RoughDestination { get; set; }
         private HuntingGroundsType PotentialDestinations { get; set; }
         #endregion
@@ -297,14 +306,15 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
             // So we don't want to falsely inform the user of things that will be skipped.
             if (isBehaviorShouldRun)
             {
+                const float defaultArrivalToleranceMin = 1;
                 // Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
-                if (DefaultArrivalTolerance < Navigator.PathPrecision)
+                if (DefaultArrivalTolerance < defaultArrivalToleranceMin)
                 {
-                    QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
-                                         + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
+                    QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than Minimum({1:F1})."
+                                         + "  Setting ArrivalTolerance to be minimum to prevent navigational issues.",
                                          DefaultArrivalTolerance,
-                                         Navigator.PathPrecision);
-                    DefaultArrivalTolerance = Navigator.PathPrecision;
+                                         defaultArrivalToleranceMin);
+                    DefaultArrivalTolerance = defaultArrivalToleranceMin;
                 }
 
                 // Disable any settings that may cause us to dismount --
@@ -346,15 +356,6 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
             var immediateDestination = FindImmediateDestination();
 
-            // If we've no way to reach destination, inform user and quit...
-            if (!Flightor.CanFly && !Navigator.CanNavigateWithin(Me.Location, immediateDestination, (float)DefaultArrivalTolerance))
-            {
-                QBCLog.Fatal("Toon doesn't have flying capability in this area, and there is no ground path to the destination."
-                             + " Please learn the flying skill appropriate for this area.");
-                BehaviorDone();
-                return false;
-            }
-
             // Arrived at destination?
             if (AtLocation(activeMover.Location, immediateDestination))
             {
@@ -383,7 +384,11 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
             }
 
             // Move closer to destination...
-            Flightor.MoveTo(immediateDestination, !IgnoreIndoors);
+            var parameters = new FlyToParameters(immediateDestination) {CheckIndoors = !IgnoreIndoors};
+            if (MinHeight.HasValue)
+                parameters.MinHeight = MinHeight.Value;
+
+            Flightor.MoveTo(parameters);
             return true;
         }
         #endregion
@@ -395,7 +400,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         // that need to be considered when calculating the final (variant) point.
         // WMOs in particular need to be 'visible' for FanOutRandom() to take them into proper consideration.
         // This means we must be reasonably near the destination before the FanOutRandom() is called.
-        private WoWPoint FindImmediateDestination()
+        private Vector3 FindImmediateDestination()
         {
             // If we have our final destination, use it...
             if (FinalDestination.HasValue)
@@ -408,7 +413,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
             // If we're close enough to 'see' final destination...
             // Pick the final destination, and use it...
-            if (WoWMovement.ActiveMover.Location.DistanceSqr(RoughDestination.Location) <= distanceToPickVariantDestinationSqr)
+            if (WoWMovement.ActiveMover.Location.DistanceSquared(RoughDestination.Location) <= distanceToPickVariantDestinationSqr)
             {
                 FinalDestination = RoughDestination.Location.FanOutRandom(RoughDestination.AllowedVariance);
                 return FinalDestination.Value;
@@ -419,11 +424,11 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         }
 
         /// <summary>Determines if <paramref name="myPos"/> is at <paramref name="otherPos"/></summary>
-        private bool AtLocation(WoWPoint myPos, WoWPoint otherPos)
+        private bool AtLocation(Vector3 myPos, Vector3 otherPos)
         {
             // We are using cylinder distance comparison because often times we want faily high precision
             // but need an increased tolerance in the z coord due to 'otherPos' sometimes being below terrain.
-            if (myPos.Distance2DSqr(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
+            if (myPos.Distance2DSquared(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
                 return false;
 
             var zTolerance = Math.Max(4.5f, RoughDestination.ArrivalTolerance);

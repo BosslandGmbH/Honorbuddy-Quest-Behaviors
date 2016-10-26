@@ -49,6 +49,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -101,13 +102,13 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 AttackButton = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new[] { "AttackIndex", "SpellIndex" }) ?? 0;
-                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                ClickToLocation = GetAttributeAsNullable<Vector3>("ClickTo", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
-                MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MoveToLocation = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
@@ -135,13 +136,13 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 
         // Attributes provided by caller
         public int AttackButton { get; private set; }
-        public WoWPoint ClickToLocation { get; private set; }
+        public Vector3 ClickToLocation { get; private set; }
         public double CollectionDistance { get; private set; }
         public bool IgnoreCombat { get; private set; }
         public double MinRange { get; private set; }
         public int[] MobIds { get; private set; }
         public double MobHpPercentLeft { get; private set; }
-        public WoWPoint MoveToLocation { get; private set; }
+        public Vector3 MoveToLocation { get; private set; }
         public NpcStateType NpcState { get; private set; }
         public int NumOfTimes { get; private set; }
         public int QuestId { get; private set; }
@@ -236,7 +237,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                         ret => UseType == QBType.ToObject,
                         new PrioritySelector(
                             new Decorator(
-                                ret => UseObject == null && Me.Location.DistanceSqr(MoveToLocation) >= 2 * 2,
+                                ret => UseObject == null && Me.Location.DistanceSquared(MoveToLocation) >= 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving To Use Ability around Location. Distance: " + MoveToLocation.Distance(Me.Location)),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation)))),

@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -135,9 +135,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.howtomakemeatfresh
 
 
         //<Vendor Name="dasd" Entry="0" Type="Repair" X="-7531.042" Y="-1459.93" Z="-279.5515" />
-        public WoWPoint Gooby = new WoWPoint(-7531.042, -1459.93, -279.5515);
+        public Vector3 Gooby = new Vector3(-7531.042f, -1459.93f, -279.5515f);
         //<Vendor Name="start" Entry="0" Type="Repair" X="-7537.472" Y="-1421.281" Z="-272.6569" />
-        public WoWPoint start = new WoWPoint(-7537.472, -1421.281, -272.6569);
+        public Vector3 start = new Vector3(-7537.472f, -1421.281f, -272.6569f);
 
 
         public WoWItem Meat

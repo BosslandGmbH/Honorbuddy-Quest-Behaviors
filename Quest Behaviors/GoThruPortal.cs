@@ -72,6 +72,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -110,10 +111,10 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                 // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
                 // Behavior-specific attributes...
-                MovePoint = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                MovePoint = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 // Tunables...
-                StartingPoint = GetAttributeAsNullable<WoWPoint>("Initial", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                StartingPoint = GetAttributeAsNullable<Vector3>("Initial", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 MaxRetryCount = GetAttributeAsNullable<int>("MaxRetryCount", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 3;
                 int retryDelay = GetAttributeAsNullable<int>("RetryDelay", false, new ConstrainTo.Domain<int>(0, 300000), null) ?? 90000;
                 int zoningMaxWaitTime = GetAttributeAsNullable<int>("Timeout", false, new ConstrainTo.Domain<int>(1, 60000), null) ?? 10000;
@@ -137,10 +138,10 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 
 
         // Attributes provided by caller
-        private WoWPoint MovePoint { get; set; }
+        private Vector3 MovePoint { get; set; }
         private int MaxRetryCount { get; set; }
         private TimeSpan RetryDelay { get; set; }
-        private WoWPoint StartingPoint { get; set; }
+        private Vector3 StartingPoint { get; set; }
         private TimeSpan MaxTimeToPortalEntry { get; set; }
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -189,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
         private readonly TimeSpan _postZoningDelay = TimeSpan.FromMilliseconds(1250);
 
         private Stopwatch RetryDelayTimer { get; set; }
-        private WoWPoint LastLocation { get; set; }
+        private Vector3 LastLocation { get; set; }
         private float LastForwardSpeed { get; set; }
         private Stopwatch PulseTimer { get; set; }
         private int _retryCount = 1;

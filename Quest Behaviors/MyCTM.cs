@@ -49,12 +49,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
@@ -64,7 +66,6 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 
 using Action = Styx.TreeSharp.Action;
-using Vector3 = Tripper.Tools.Math.Vector3;
 #endregion
 
 
@@ -81,7 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
             try
             {
                 DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? "";
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Destination = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 UseRelativeLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] { "useRelative" }) ?? false;
 
                 var upperLimitOnMovementTime = GetAttributeAsNullable<int>("UpperLimitOnMovementTime", false, ConstrainAs.Milliseconds, null)
@@ -136,9 +137,9 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 
 
         // Attributes provided by caller
-        private WoWPoint Destination { get; set; }
+        private Vector3 Destination { get; set; }
         private string DestinationName { get; set; }
-        private WoWPoint OrigDestination { get; set; }
+        private Vector3 OrigDestination { get; set; }
         private bool UseRelativeLocation { get; set; }
         private TimeSpan UpperLimitOnMovementTime { get; set; }
         #endregion
@@ -146,9 +147,9 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 
         #region Private and Convenience variables
         private WoWMovement.MovementDirection _antiStuckMoveDirection = WoWMovement.MovementDirection.None;
-        private WoWPoint _antiStuckMyLoc = WoWPoint.Empty;
+        private Vector3 _antiStuckMyLoc = Vector3.Zero;
         private bool _antiStuckPerformSimpleSequence = false;
-        private WoWPoint _antiStuckPrevPosition = WoWPoint.Empty;
+        private Vector3 _antiStuckPrevPosition = Vector3.Zero;
         private readonly WaitTimer _antiStuckStuckSucceedTimer = new WaitTimer(TimeSpan.FromSeconds(6));
         private WaitTimer _runTimer;
         private readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
@@ -185,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                 // normal values when OnFinished() is called.
                 LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
 
-                Navigator.NavigationProvider.StuckHandler.Reset();
+                Navigator.NavigationProvider.ClearStuckInfo();
             }
         }
         #endregion
@@ -208,7 +209,8 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                         new Decorator(context => _runTimer == null,
                             new Action(context =>
                             {
-                                _runTimer = new WaitTimer(Destination.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), UpperLimitOnMovementTime));
+                                float straightLineDist = WoWMovement.ActiveMover.Location.Distance(Destination);
+                                _runTimer = new WaitTimer(Utility.MaximumTraversalTime(straightLineDist, 2.5, TimeSpan.FromSeconds(20), UpperLimitOnMovementTime));
                                 QBCLog.DeveloperInfo("Maximum allowed time to reach destination: {0} seconds",
                                     _runTimer.WaitTime.TotalSeconds);
                                 _runTimer.Reset();
@@ -237,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                         //     new Action(context => Navigator.NavigationProvider.StuckHandler.Unstick())),
 
                         // check if bot has reached the destination.
-                        new Decorator(context => Destination.DistanceSqr(Me.Location) <= (3 * 3),
+                        new Decorator(context => Destination.DistanceSquared(Me.Location) <= (3 * 3),
                             new Action(context =>
                                 {
                                     BehaviorDone(string.Format("Finished moving to {0}", DestinationName));
@@ -270,7 +272,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                     new Sequence(context => _antiStuckMyLoc = WoWMovement.ActiveMover.Location,
 
                         // Check if stuck...
-                        new DecoratorContinue(context => _antiStuckMyLoc.DistanceSqr(_antiStuckPrevPosition) < (3 * 3),
+                        new DecoratorContinue(context => _antiStuckMyLoc.DistanceSquared(_antiStuckPrevPosition) < (3 * 3),
                             new Sequence(context => _antiStuckPerformSimpleSequence = _antiStuckStuckSucceedTimer.IsFinished,
                                 new DecoratorContinue(context => Me.IsMounted() && !Me.IsFlying,
                                     new ActionRunCoroutine(context => CommonCoroutines.Dismount("Stuck"))),
@@ -349,7 +351,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         }
 
 
-        private WoWPoint CalculateRelativeLocation(WoWPoint origDestination)
+        private Vector3 CalculateRelativeLocation(Vector3 origDestination)
         {
             return Vector3.Transform(origDestination, Me.Transport.GetWorldMatrix());
         }
@@ -360,7 +362,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
             get
             {
                 return !WoWMovement.ActiveMover.IsMoving ||
-                       WoWMovement.ClickToMoveInfo.ClickPos.DistanceSqr(Destination) > (0.5 * 0.5);
+                       WoWMovement.ClickToMoveInfo.ClickPos.DistanceSquared(Destination) > (0.5 * 0.5);
             }
         }
         #endregion

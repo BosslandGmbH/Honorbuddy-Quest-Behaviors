@@ -62,6 +62,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -105,7 +106,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
                 Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
                 Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.01, 80), null) ?? 30;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
-                VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                VehicleSearchLocation = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
                 Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
             }
@@ -132,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
         private double? Gravity { get; set; }
         private double? Velocity { get; set; }
         private int VehicleId { get; set; }
-        private WoWPoint VehicleSearchLocation { get; set; }
+        private Vector3 VehicleSearchLocation { get; set; }
 
         // Private variables for internal state
 

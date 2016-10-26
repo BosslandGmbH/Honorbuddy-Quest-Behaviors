@@ -25,9 +25,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -67,7 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 VehicleMountId = GetAttributeAsNullable<int>("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "MobMountId", "NpcMountId" }) ?? 0;
             }
 
@@ -88,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
 
 
         // Attributes provided by caller
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }

@@ -10,7 +10,7 @@
 //
 
 #region Summary and Documentation
-// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255)
+// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255) 
 // Code was taken from Shak
 #endregion
 
@@ -23,11 +23,13 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -49,8 +51,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
             QBCLog.BehaviorLoggingContext = this;
 
             QuestId = 12255;
-            Location = WoWPoint.Empty;
-            Endloc = WoWPoint.Empty;
+            Location = Vector3.Zero;
+            Endloc = Vector3.Zero;
             QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
             QuestRequirementInLog = QuestInLogRequirement.InLog;
         }
@@ -58,16 +60,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
         // DON'T EDIT THIS--it is auto-populated by Git
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
-
-        public WoWPoint Location { get; private set; }
-        public WoWPoint Endloc { get; private set; }
+        public Vector3 Location { get; private set; }
+        public Vector3 Endloc { get; private set; }
         public int QuestId { get; set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public static LocalPlayer Me = StyxWoW.Me;
-        private WoWPoint _endloc = new WoWPoint(2798.203, -2510.08, 99.77123);
-        private WoWPoint _startloc = new WoWPoint(2939.488, -2525.839, 127.3586);
-        private WoWPoint _flyloc = new WoWPoint(2788.155, -2508.851, 56.05595);
+        private Vector3 _endloc = new Vector3(2798.203f, -2510.08f, 99.77123f);
+        private Vector3 _startloc = new Vector3(2939.488f, -2525.839f, 127.3586f);
+        private Vector3 _flyloc = new Vector3(2788.155f, -2508.851f, 56.05595f);
 
         #region Overrides of CustomForcedBehavior
         public List<WoWUnit> objmob

@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -111,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
         private IEnumerable<int> _dragonIds = new[] { 62584, 62585, 62586, 62311 };
 
-        private readonly WoWPoint _startingSpot = new WoWPoint(3888.184, 5373.759, 311.3385);
+        private readonly Vector3 _startingSpot = new Vector3(3888.184f, 5373.759f, 311.3385f);
 
         public WoWUnit ShanzeCloudrunner
         {

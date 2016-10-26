@@ -14,8 +14,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -63,7 +64,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Private and Convenience variables
-        private WoWPoint? AimedLocation { get; set; }
+        private Vector3? AimedLocation { get; set; }
         private double? FixedMuzzleVelocity { get; set; }
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
         private readonly WaitTimer _missileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
@@ -76,9 +77,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 11Mar2013-04:41UTC chinajade
-        private double? CalculateBallisticLaunchAngle(WoWPoint targetLocation)
+        private double? CalculateBallisticLaunchAngle(Vector3 targetLocation)
         {
-            if (targetLocation == WoWPoint.Empty)
+            if (targetLocation == Vector3.Zero)
             { return null; }
 
             double v0Sqr = MuzzleVelocityInFps * MuzzleVelocityInFps;
@@ -171,10 +172,10 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public TimeSpan CalculateTimeOfProjectileFlight(WoWPoint wowPoint)
+        public TimeSpan CalculateTimeOfProjectileFlight(Vector3 Vector3)
         {
-            var R = Me.Location.Distance2D(wowPoint);
-            var launchAngle = CalculateBallisticLaunchAngle(wowPoint);
+            var R = Me.Location.Distance2D(Vector3);
+            var launchAngle = CalculateBallisticLaunchAngle(Vector3);
 
             if (!launchAngle.HasValue)
             { return TimeSpan.Zero; }
@@ -268,10 +269,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 11Mar2013-04:41UTC chinajade
-        public bool WeaponAim(WoWPoint selectedLocation)
+        public bool WeaponAim(Vector3 selectedLocation)
         {
             AimedLocation = null;
-            if (selectedLocation == WoWPoint.Empty)
+            if (selectedLocation == Vector3.Zero)
             {
                 QBCLog.Warning("No target location for WeaponAim!");
                 WoWMovement.StopFace();
@@ -389,7 +390,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 // Lie about weapon being aimed...
                 // NB:  S'ok, for test fire, we're after the measured muzzle velocity.
-                AimedLocation = WoWPoint.Zero;
+                AimedLocation = Vector3.Zero;
                 WeaponFire();
                 return false;
             }

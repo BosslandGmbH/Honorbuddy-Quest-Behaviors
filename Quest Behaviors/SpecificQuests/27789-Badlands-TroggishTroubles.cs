@@ -24,7 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -47,7 +47,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
         private const int QuestId = 27789;
         private const uint StonevaultRuffianId = 46711;
         private const uint StonevaultGoonId = 46712;
-        private readonly WoWPoint _questLocation = new WoWPoint(-7077.73, -3252.417, 241.7727);
+        private readonly Vector3 _questLocation = new Vector3(-7077.73f, -3252.417f, 241.7727f);
         private Composite _root;
 
         public TroggishTroubles(Dictionary<string, string> args) : base(args)
@@ -138,16 +138,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
                     where unit.IsAlive && (unit.Entry == StonevaultRuffianId || unit.Entry == StonevaultGoonId)
                     let loc = unit.Location
                     orderby MobCountAtLocation(loc, 10, StonevaultRuffianId, StonevaultGoonId) descending
-                    orderby loc.DistanceSqr(myLoc)
+                    orderby loc.DistanceSquared(myLoc)
                     select unit).FirstOrDefault();
         }
 
-        private int MobCountAtLocation(WoWPoint point, float radius, params uint[] mobIds)
+        private int MobCountAtLocation(Vector3 point, float radius, params uint[] mobIds)
         {
             var radiusSqr = radius * radius;
             return
                 ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
-                    .Count(u => u.IsAlive && mobIds.Contains(u.Entry) && u.Location.DistanceSqr(point) <= radiusSqr);
+                    .Count(u => u.IsAlive && mobIds.Contains(u.Entry) && u.Location.DistanceSquared(point) <= radiusSqr);
         }
 
         private WoWUnit GetTurret()

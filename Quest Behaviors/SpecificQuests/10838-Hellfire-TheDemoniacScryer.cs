@@ -22,9 +22,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -69,7 +71,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
         public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id$");
 
         public int QuestId { get; set; }
-        public WoWPoint Location = new WoWPoint(-145.9611, 3192.408, -65.09953);
+        public Vector3 Location = new Vector3(-145.9611f, 3192.408f, -65.09953f);
         public int ItemId = 31606;
         public int MobId = 22258;
         public Stopwatch TimeOut = new Stopwatch();

@@ -110,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FireFromTheSky
         {
             var dist = distance * distance;
             var curTarLocation = who.Location;
-            return ObjectManager.GetObjectsOfType<WoWUnit>().Count(p => p.IsAlive && (p.Entry == 48713) && p.Location.DistanceSqr(curTarLocation) <= dist);
+            return ObjectManager.GetObjectsOfType<WoWUnit>().Count(p => p.IsAlive && (p.Entry == 48713) && p.Location.DistanceSquared(curTarLocation) <= dist);
             // (p.Entry == 48720 || p.Entry == 48713) changed to (p.Entry == 48720)
         }
 
@@ -135,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FireFromTheSky
         }
 
         /*
-		protected WoWPoint getEstimatedPosition(WoWUnit who,double time)
+		protected Vector3 getEstimatedPosition(WoWUnit who,double time)
 		{
 			var targetVelocity = 1.50;
 			var targetStartingPoint = who.MovementInfo.Position;
@@ -143,7 +143,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FireFromTheSky
 			   targetVelocity * time * who.MovementInfo.DirectionSinX;//Math.Sin(who.Rotation);
 			double y = targetStartingPoint.Y +
 			   targetVelocity * time * who.MovementInfo.DirectionCosY;//Math.Cos(who.Rotation);
-			return new WoWPoint(x, y,who.Z);
+			return new Vector3(x, y,who.Z);
 		}
 		*/
 

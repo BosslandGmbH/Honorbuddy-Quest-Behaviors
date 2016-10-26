@@ -55,8 +55,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
         // DON'T EDIT THIS--it is auto-populated by Git
         protected override string GitId => "$Id$";
 
-        public int QuestId { get; set; }
-        private bool _isBehaviorDone = false;
         private Composite _root;
         public WoWGameObject Controller
         {
@@ -130,7 +128,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
             if (StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted)
             {
                 Lua.DoString("VehicleExit()");
-                _isBehaviorDone = true;
                 return true;
             }
             return false;

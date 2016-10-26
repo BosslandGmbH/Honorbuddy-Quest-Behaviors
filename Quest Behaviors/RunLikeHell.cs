@@ -72,6 +72,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -162,14 +163,14 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
-        private Queue<WoWPoint> Path { get; set; }
+        private Queue<Vector3> Path { get; set; }
 
 
         private bool ParsePath()
         {
-            var path = new Queue<WoWPoint>();
+            var path = new Queue<Vector3>();
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Hotspot")))
+            foreach (Vector3 point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "Hotspot")))
                 path.Enqueue(point);
 
             Path = path;
@@ -177,9 +178,9 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
         }
 
 
-        public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
+        public IEnumerable<Vector3> ParseVector3s(IEnumerable<XElement> elements)
         {
-            var temp = new List<WoWPoint>();
+            var temp = new List<Vector3>();
 
             foreach (XElement element in elements)
             {
@@ -192,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
                 float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
                 float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
-                temp.Add(new WoWPoint(x, y, z));
+                temp.Add(new Vector3(x, y, z));
             }
 
             return temp;
@@ -295,10 +296,10 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 ParsePath();        // refresh the list of points
 
                 // find the closest point in path
-                WoWPoint closePt = Path.Peek();
+                Vector3 closePt = Path.Peek();
                 double minDist = Me.Location.Distance(closePt);
 
-                foreach (WoWPoint pt in Path)
+                foreach (Vector3 pt in Path)
                 {
                     if (Me.Location.Distance(pt) < minDist)
                     {

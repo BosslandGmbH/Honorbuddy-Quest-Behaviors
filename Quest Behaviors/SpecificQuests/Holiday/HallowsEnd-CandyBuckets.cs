@@ -66,6 +66,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -643,7 +644,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             // Move close enough to player to use Weighted Jack-o'-Lantern
             Utility.Target(selectedPlayer);
-            if ((Me.Location.DistanceSqr(selectedPlayer.Location) > MaxRangeSqrForWeightedJackOLantern)
+            if ((Me.Location.DistanceSquared(selectedPlayer.Location) > MaxRangeSqrForWeightedJackOLantern)
                 || !selectedPlayer.InLineOfSpellSight)
             {
                 // This is a bit ugly...
@@ -932,7 +933,7 @@ namespace Honorbuddy.Quest_Behaviors
                     // LandingArea processing...
                     LandingAreas = HuntingGroundsType.GetOrCreate(Element, "LandingAreas", null);
                     if (LandingAreas.Waypoints.Count <= 0)
-                        LandingAreas.Waypoints.Add(new WaypointType(Me.Location, "initial location"));
+                        LandingAreas.Waypoints.Add(new WaypointType(Me.Location, "initial location", arrivalTolerance: 3d));
                     LandingAreas.WaypointVisitStrategy = HuntingGroundsType.WaypointVisitStrategyType.PickOneAtRandom;
                     IsAttributeProblem |= LandingAreas.IsAttributeProblem;
 

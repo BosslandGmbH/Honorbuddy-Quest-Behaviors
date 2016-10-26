@@ -44,7 +44,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -133,10 +133,10 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
 
         //Safe
         //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
-        private WoWPoint _safe = new WoWPoint(5410.753, -2771.448, 1516.072);
+        private Vector3 _safe = new Vector3(5410.753f, -2771.448f, 1516.072f);
         //Attack
         //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
-        private WoWPoint _attack = new WoWPoint(5417.539, -2792.542, 1515.283);
+        private Vector3 _attack = new Vector3(5417.539f, -2792.542f, 1515.283f);
         public Composite DpsHim
         {
             get

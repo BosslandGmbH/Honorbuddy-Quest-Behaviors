@@ -51,6 +51,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -58,6 +59,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -82,7 +84,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
                 // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Location = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
                 TargetNearest = GetAttributeAsNullable<bool>("TargetNearest", false, null, new[] { "TargetClosest" }) ?? false;
@@ -111,7 +113,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
         }
 
         // Attributes provided by caller
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int ItemId { get; private set; }
         public int NumOfTimes { get; private set; }
         public int WaitTime { get; private set; }

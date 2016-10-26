@@ -23,7 +23,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -112,7 +112,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
         }
 
 
-        public WoWPoint start = new WoWPoint(-7228.146, -599.6198, -271.2461);
+        public Vector3 start = new Vector3(-7228.146f, -599.6198f, -271.2461f);
 
         //<Vendor Name="Devilsaur Queen" Entry="38708" Type="Repair" X="-7933.465" Y="-689.9974" Z="-258.6719" />
         public WoWUnit Dragon

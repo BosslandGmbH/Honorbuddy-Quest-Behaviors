@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -122,7 +122,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Nightmare
             }
         }
 
-        private readonly WoWPoint _spot = new WoWPoint(-2739.832, -5000.674, -127.1305);
+        private readonly Vector3 _spot = new Vector3(-2739.832f, -5000.674f, -127.1305f);
 
         public WoWUnit Brain
         {

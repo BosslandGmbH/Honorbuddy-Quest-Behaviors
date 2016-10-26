@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
@@ -168,15 +169,15 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         private double TargetHeightVariance { get { return StyxWoW.Random.Next(15); } }
 
         private int AuraId_RideVehicleHardcoded { get; set; }
-        private WoWPoint? StationPoint { get; set; }
+        private Vector3? StationPoint { get; set; }
         private double FlightorMinHeight { get; set; }
         private WoWItem ItemToSummonVehicle { get; set; }
         private int MobId_FrostbroodVanquisher { get; set; }
         private int MobId_ScarletBallista { get; set; }
         private int MobId_TirisfalCrusader { get; set; }
-        private WoWPoint PathEnd { get; set; }
-        private CircularQueue<WoWPoint> PathPatrol { get; set; }
-        private WoWPoint PathStart { get; set; }
+        private Vector3 PathEnd { get; set; }
+        private CircularQueue<Vector3> PathPatrol { get; set; }
+        private Vector3 PathStart { get; set; }
         private WoWUnit SelectedTarget { get; set; }
         private WoWUnit SelectedTargetToDevour { get; set; }
         private VehicleAbility Weapon_DevourHuman { get; set; }
@@ -378,7 +379,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
                     var myLocation = WoWMovement.ActiveMover.Location;
                     var selectedTargetLocation = SelectedTarget.Location;
-                    var distance2DSqrToTarget = myLocation.Distance2DSqr(selectedTargetLocation);
+                    var distance2DSqrToTarget = myLocation.Distance2DSquared(selectedTargetLocation);
 
                     // Deal with needed evasion...
                     if (StationPoint.HasValue)
@@ -544,7 +545,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         private Composite SubBehaviorPS_UpdatePathWaypoint()
         {
             return
-                new Decorator(ret => PathPatrol.Peek().Distance2DSqr(DragonVehicle.Location) <= (30 * 30),
+                new Decorator(ret => PathPatrol.Peek().Distance2DSquared(DragonVehicle.Location) <= (30 * 30),
                     new ActionFail(ret => PathPatrol.Dequeue()));
         }
         #endregion
@@ -559,25 +560,25 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
 
         #region Helpers
-        private WoWPoint FindDistanceClosePoint(WoWUnit wowUnit, double altitudeNeeded)
+        private Vector3 FindDistanceClosePoint(WoWUnit wowUnit, float altitudeNeeded)
         {
             var wowUnitLocation = wowUnit.Location;
 
-            return new WoWPoint(wowUnitLocation.X, wowUnit.Location.Y, altitudeNeeded);
+            return new Vector3(wowUnitLocation.X, wowUnit.Location.Y, altitudeNeeded);
         }
 
 
-        private WoWPoint FindDistanceGainPoint(WoWUnit wowUnit, double minDistanceNeeded)
+        private Vector3 FindDistanceGainPoint(WoWUnit wowUnit, double minDistanceNeeded)
         {
             var minDistanceNeededSqr = (minDistanceNeeded * minDistanceNeeded);
             var wowUnitLocation = wowUnit.Location;
 
             return
-                (from wowPoint in PathPatrol
-                 let distanceSqr = wowUnitLocation.Distance(wowPoint)
+                (from Vector3 in PathPatrol
+                 let distanceSqr = wowUnitLocation.Distance(Vector3)
                  where distanceSqr > minDistanceNeededSqr
                  orderby distanceSqr
-                 select wowPoint)
+                 select Vector3)
                  .FirstOrDefault();
         }
 
@@ -598,7 +599,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         }
 
 
-        private WoWPoint FindNewStationPoint(WoWUnit desiredTarget, double offsetRadians = 0.0)
+        private Vector3 FindNewStationPoint(WoWUnit desiredTarget, double offsetRadians = 0.0)
         {
             if (!Query.IsViable(desiredTarget))
             { desiredTarget = FindMobToKill(MobId_ScarletBallista); }
@@ -612,7 +613,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
             escapeHeading = WoWMathHelper.NormalizeRadian((float)(escapeHeading + offsetRadians + (TAU / 14)));
 
             var escapePoint = targetLocation.RayCast(escapeHeading, (float)preferredDistance);
-            return new WoWPoint(escapePoint.X, escapePoint.Y, targetLocation.Z).Add(0.0, 0.0, TargetHeightMinimum + TargetHeightVariance);
+            return new Vector3(escapePoint.X, escapePoint.Y, targetLocation.Z).Add(0.0, 0.0, TargetHeightMinimum + TargetHeightVariance);
         }
 
 
@@ -632,7 +633,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                         && (wowUnit.Entry == HealNpcId)
                         && wowUnit.HealthPercent > 95
                         && IsViableTarget(wowUnit)
-                        && (wowUnit.Location.DistanceSqr(selectedTargetLocation) > mobsSurroundingTargetDistanceSqr)
+                        && (wowUnit.Location.DistanceSquared(selectedTargetLocation) > mobsSurroundingTargetDistanceSqr)
                         // Don't try to fetch a soldier from inside a building...
                         && wowUnit.InLineOfSight
                     orderby wowUnit.DistanceSqr
@@ -653,8 +654,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                 var isIncomingMissile =
                     WoWMissile.InFlightMissiles
                     .Any(m =>
-                        (m.Position.DistanceSqr(myLocation) < missileDistanceSqrConsideration)
-                        && (m.ImpactPosition.DistanceSqr(myLocation) < impactDistanceSqrConsideration));
+                        (m.Position.DistanceSquared(myLocation) < missileDistanceSqrConsideration)
+                        && (m.ImpactPosition.DistanceSquared(myLocation) < impactDistanceSqrConsideration));
 
                 return isIncomingMissile;
             }
@@ -675,9 +676,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         }
 
 
-        private IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
+        private IEnumerable<Vector3> ParseVector3s(IEnumerable<XElement> elements)
         {
-            var temp = new List<WoWPoint>();
+            var temp = new List<Vector3>();
 
             foreach (var element in elements)
             {
@@ -689,7 +690,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                 float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
                 float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
                 float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
-                temp.Add(new WoWPoint(x, y, z).Add(0.0, 0.0, StyxWoW.Random.Next(10)));
+                temp.Add(new Vector3(x, y, z).Add(0.0, 0.0, StyxWoW.Random.Next(10)));
             }
 
             return temp;
@@ -698,17 +699,17 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
         private void ParsePaths()
         {
-            var endPoint = WoWPoint.Empty;
-            var startPoint = WoWPoint.Empty;
-            var path = new CircularQueue<WoWPoint>();
+            var endPoint = Vector3.Zero;
+            var startPoint = Vector3.Zero;
+            var path = new CircularQueue<Vector3>();
 
-            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
+            foreach (var point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "Start")))
             { startPoint = point; }
 
-            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "End")))
+            foreach (var point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "End")))
             { endPoint = point; }
 
-            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Hop")))
+            foreach (var point in ParseVector3s(Element.Elements().Where(elem => elem.Name == "Hop")))
             { path.Enqueue(point); }
 
             PathStart = startPoint;

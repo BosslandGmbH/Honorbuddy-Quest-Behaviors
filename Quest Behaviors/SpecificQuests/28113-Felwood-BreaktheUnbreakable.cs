@@ -20,7 +20,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -47,7 +47,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
             QBCLog.BehaviorLoggingContext = this;
 
             QuestId = 28113;
-            _touchdown = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+            _touchdown = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git
@@ -65,7 +65,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
         }
 
         private bool _touched;
-        private WoWPoint _touchdown;
+        private Vector3 _touchdown;
 
         protected Composite CreateBehavior_QuestbotMain()
         {

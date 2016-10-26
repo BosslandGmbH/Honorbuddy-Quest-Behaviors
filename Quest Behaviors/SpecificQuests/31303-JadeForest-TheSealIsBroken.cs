@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -143,9 +143,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheSealIsBroken
 
 
 
-        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
-        private WoWPoint _spot = new WoWPoint(1104.14, 467.4733, -44.5488);
+        private Vector3 _spot = new Vector3(1104.14f, 467.4733f, -44.5488f);
 
 
         protected Composite CreateBehavior_MainCombat()

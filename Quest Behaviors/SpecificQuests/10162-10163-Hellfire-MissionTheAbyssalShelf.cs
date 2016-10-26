@@ -22,11 +22,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -87,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
         private const int MobId_GanArgPeon = 19398;
         private int MobId_FlightMaster { get; set; }        // changes based on faction--set in OnStart()
         private const int MobId_MoargOverseer = 19397;
-        private WoWPoint WaitLocation { get; set; }         // changes based on faction--set in OnStart()
+        private Vector3 WaitLocation { get; set; }         // changes based on faction--set in OnStart()
         #endregion
 
 
@@ -148,8 +150,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                     : 19401;    // Wing Commander Brack
                 WaitLocation =
                     Me.IsAlliance
-                    ? new WoWPoint(294.6884, 1498.062, -14.59722).FanOutRandom(4.0)     // Gryphoneer Windbellow
-                    : new WoWPoint(-24.09538, 2125.857, 112.7034).FanOutRandom(4.0);    // Wing Commander Brack
+                    ? new Vector3(294.6884f, 1498.062f, -14.59722f).FanOutRandom(4.0)     // Gryphoneer Windbellow
+                    : new Vector3(-24.09538f, 2125.857f, 112.7034f).FanOutRandom(4.0);    // Wing Commander Brack
 
                 _behaviorTreeHook_TaxiCheck = new ExceptionCatchingWrapper(this, CreateBehavior_TaxiCheck());
                 TreeHooks.Instance.InsertHook("Taxi_Check", 0, _behaviorTreeHook_TaxiCheck);
@@ -231,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                                             FlightMaster.SafeName,
                                             MovementBy))),
                                 new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
-                                new Mount.ActionLandAndDismount(),
+                                new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
                                 new Decorator(context => !GossipFrame.Instance.IsVisible,
                                     new Action(context => { FlightMaster.Interact(); })),
                                 new Action(context => { GossipFrame.Instance.SelectGossipOption(GossipOption); })

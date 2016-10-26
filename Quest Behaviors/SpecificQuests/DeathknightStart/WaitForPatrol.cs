@@ -145,6 +145,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 using Bots.Grind;
 using CommonBehaviors.Actions;
@@ -182,7 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 AvoidDistance = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new[] { "Distance" }) ?? 20.0;
                 MobIdToAvoid = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
                 MobIdToMoveNear = GetAttributeAsNullable<int>("MoveToMobId", false, ConstrainAs.MobId, new[] { "MoveToMobID" }) ?? 0;
-                SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                SafespotLocation = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
 
                 // Tunables...
             }
@@ -204,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         private double AvoidDistance { get; set; }
         private int MobIdToAvoid { get; set; }
         private int MobIdToMoveNear { get; set; }
-        private WoWPoint SafespotLocation { get; set; }
+        private Vector3 SafespotLocation { get; set; }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -456,8 +457,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                             "safe spot",
                             MovementBy))),
 
-                // Dismount once we've arrived at mob or destination...
-                new Mount.ActionLandAndDismount(),
+                 // Dismount once we've arrived at mob or destination...
+                 new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
 
                 new Decorator(ctx => StyxWoW.Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
 

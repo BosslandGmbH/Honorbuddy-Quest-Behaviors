@@ -65,12 +65,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 
 using Honorbuddy.QuestBehaviorCore;
 
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -115,7 +116,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 }
 
                 ButtonOnQuestComplete = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
-                HuntingGroundAnchor = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundAnchor = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 HuntingGroundRadius = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), null) ?? 120.0;
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
@@ -157,7 +158,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 
         // Attributes provided by caller...
         public int? ButtonOnQuestComplete { get; private set; }
-        public WoWPoint HuntingGroundAnchor { get; private set; }
+        public Vector3 HuntingGroundAnchor { get; private set; }
         public double HuntingGroundRadius { get; private set; }
         public bool IgnoreMobsInBlackspots { get; private set; }
         public int[] MobIds { get; private set; }
@@ -186,7 +187,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         // Private LINQ queries...
         private IEnumerable<WoWObject> ViableTargets()
         {
-            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+            return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                     .Where(target => (target.IsValid
                                       && MobIds.Contains((int)target.Entry)
                                       && TargetAurasShowing(target, _targetAuraToButtonMap).Any()
@@ -194,7 +195,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                       && !target.IsLocallyBlacklisted()
                                       && !BlacklistIfPlayerNearby(target)
                                       && Query.IsStateMatch_IgnoreMobsInBlackspots(target, IgnoreMobsInBlackspots)))
-                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
+                    .OrderBy(target => target.PathTraversalCost());
         }
 
 
@@ -398,14 +399,14 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
     {
         public delegate bool BehaviorFailIfNoTargetsDelegate();
         public delegate double DistanceDelegate();
-        public delegate WoWPoint LocationDelegate();
+        public delegate Vector3 LocationDelegate();
         public delegate void LoggerDelegate(string messageType, string format, params object[] args);
         public delegate IEnumerable<WoWObject> ViableTargetsDelegate();
         public delegate WoWObject WoWObjectDelegate();
 
 
         public HuntingGroundBehavior(ViableTargetsDelegate viableTargets,
-                                     WoWPoint huntingGroundAnchor,
+                                     Vector3 huntingGroundAnchor,
                                      double collectionDistance)
         {
             CollectionDistance = collectionDistance;
@@ -426,7 +427,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         // Public properties...
         public double CollectionDistance { get; private set; }
         public WoWObject CurrentTarget { get; private set; }
-        public WoWPoint HuntingGroundAnchor { get; private set; }
+        public Vector3 HuntingGroundAnchor { get; private set; }
 
 
         // Private properties & data...
@@ -442,8 +443,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 
         private TimeSpan _currentTargetAutoBlacklistTime = TimeSpan.FromSeconds(1);
         private readonly Stopwatch _currentTargetAutoBlacklistTimer = new Stopwatch();
-        private Queue<WoWPoint> _hotSpots = new Queue<WoWPoint>();
-        private WoWPoint _huntingGroundWaitPoint;
+        private Queue<Vector3> _hotSpots = new Queue<Vector3>();
+        private Vector3 _huntingGroundWaitPoint;
         private readonly Stopwatch _repopWaitingTime = new Stopwatch();
 
 
@@ -491,7 +492,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                         new Decorator(ret => (CurrentTarget != null),
                             new Action(delegate
                             {
-                                _huntingGroundWaitPoint = WoWPoint.Empty;
+                                _huntingGroundWaitPoint = Vector3.Zero;
 
                                 if (CurrentTarget is WoWUnit)
                                 { CurrentTarget.ToUnit().Target(); }
@@ -511,14 +512,14 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                 new Decorator(ret => (_hotSpots.Count() > 1),
                                     new Sequence(context => FindNextHotspot(),
                                         new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to hotspot "
-                                                                                        + (WoWPoint)nextHotspot),
+                                                                                        + (Vector3)nextHotspot),
                                         CreateBehavior_InternalMoveTo(() => FindNextHotspot())
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
                                 // This way, if multiple people are using the same profile at the same time,
                                 // they won't be standing on top of each other.
-                                new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
+                                new Decorator(ret => (_huntingGroundWaitPoint == Vector3.Zero),
                                     new Action(delegate
                                         {
                                             _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
@@ -616,7 +617,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 new Action(delegate
                 {
                     // Try to use Navigator to get there...
-                    WoWPoint location = locationDelegate();
+                    Vector3 location = locationDelegate();
                     MoveResult moveResult = Navigator.MoveTo(location);
 
                     // If Navigator fails, fall back to click-to-move...
@@ -630,25 +631,25 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         }
 
 
-        private WoWPoint FindNearestHotspot()
+        private Vector3 FindNearestHotspot()
         {
-            WoWPoint nearestHotspot = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
+            Vector3 nearestHotspot = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
 
             // Rotate the hotspot queue such that the nearest hotspot is on top...
             while (_hotSpots.Peek() != nearestHotspot)
             {
-                WoWPoint tmpWoWPoint = _hotSpots.Dequeue();
+                Vector3 tmpVector3 = _hotSpots.Dequeue();
 
-                _hotSpots.Enqueue(tmpWoWPoint);
+                _hotSpots.Enqueue(tmpVector3);
             }
 
             return (nearestHotspot);
         }
 
 
-        private WoWPoint FindNextHotspot()
+        private Vector3 FindNextHotspot()
         {
-            WoWPoint currentHotspot = _hotSpots.Peek();
+            Vector3 currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
             if (!Navigator.AtLocation(currentHotspot))
@@ -662,11 +663,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         }
 
 
-        public void UseHotspots(IEnumerable<WoWPoint> _hotspots)
+        public void UseHotspots(IEnumerable<Vector3> _hotspots)
         {
-            _hotspots = _hotspots ?? new WoWPoint[0];
+            _hotspots = _hotspots ?? new Vector3[0];
 
-            _hotSpots = new Queue<WoWPoint>(_hotspots);
+            _hotSpots = new Queue<Vector3>(_hotspots);
 
             if (_hotSpots.Count() <= 0)
             { _hotSpots.Enqueue(HuntingGroundAnchor); }
@@ -772,156 +773,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         public static bool IsInOurParty(this WoWUnit wowUnit)
         {
             return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
-        }
-    }
-
-
-    public static class WoWPoint_Extensions
-    {
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
-
-
-        public static WoWPoint Add(this WoWPoint wowPoint,
-                                    double x,
-                                    double y,
-                                    double z)
-        {
-            return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
-        }
-
-
-        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
-                                           double xyHeadingInRadians,
-                                           double distance,
-                                           double zModifier)
-        {
-            return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
-                                 (Math.Sin(xyHeadingInRadians) * distance),
-                                 zModifier));
-        }
-
-
-        // Finds another point near the destination.  Useful when toon is 'waiting' for something
-        // (e.g., boat, mob repops, etc). This allows multiple people running
-        // the same profile to not stand on top of each other while waiting for
-        // something.
-        public static WoWPoint FanOutRandom(this WoWPoint location,
-                                                double maxRadius)
-        {
-            const int CYLINDER_LINE_COUNT = 12;
-            const int MAX_TRIES = 50;
-            const double SAFE_DISTANCE_BUFFER = 1.75;
-
-            WoWPoint candidateDestination = location;
-            int tryCount;
-
-            // Most of the time we'll find a viable spot in less than 2 tries...
-            // However, if you're standing on a pier, or small platform a
-            // viable alternative may take 10-15 tries--its all up to the
-            // random number generator.
-            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
-            {
-                WoWPoint circlePoint;
-                bool[] hitResults;
-                WoWPoint[] hitPoints;
-                int index;
-                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
-
-                candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
-
-                // Build set of tracelines that can evaluate the candidate destination --
-                // We build a cone of lines with the cone's base at the destination's 'feet',
-                // and the cone's point at maxRadius over the destination's 'head'.  We also
-                // include the cone 'normal' as the first entry.
-
-                // 'Normal' vector
-                index = 0;
-                traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
-
-                // Cylinder vectors
-                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
-                {
-                    ++index;
-                    circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
-                    traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
-                }
-
-
-                // Evaluate the cylinder...
-                // The result for the 'normal' vector (first one) will be the location where the
-                // destination meets the ground.  Before this MassTrace, only the candidateDestination's
-                // X/Y values were valid.
-                GameWorld.MassTraceLine(traceLines.ToArray(),
-                                        TraceLineHitFlags.Collision,
-                                        out hitResults,
-                                        out hitPoints);
-
-                candidateDestination = hitPoints[0];    // From 'normal', Destination with valid Z coordinate
-
-
-                // Sanity check...
-                // We don't want to be standing right on the edge of a drop-off (say we'e on
-                // a plaform or pier).  If there is not solid ground all around us, we reject
-                // the candidate.  Our test for validity is that the walking distance must
-                // not be more than 20% greater than the straight-line distance to the point.
-                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
-                                                                      ? 1
-                                                                      : 0));
-
-                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
-                { continue; }
-
-                // If new destination is 'too close' to our current position, try again...
-                if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                { continue; }
-
-                break;
-            }
-
-            // If we exhausted our tries, just go with simple destination --
-            if (tryCount <= 0)
-            { candidateDestination = location; }
-
-            return (candidateDestination);
-        }
-
-
-        public static double SurfacePathDistance(this WoWPoint start,
-                                                    WoWPoint destination)
-        {
-            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-
-            // We define an invalid path to be of 'infinite' length
-            if (groundPath.Length <= 0)
-            { return (double.MaxValue); }
-
-
-            double pathDistance = start.Distance(groundPath[0]);
-
-            for (int i = 0; i < (groundPath.Length - 1); ++i)
-            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
-
-            return (pathDistance);
-        }
-
-
-        // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint WaterSurface(this WoWPoint location)
-        {
-            WoWPoint hitLocation;
-            bool hitResult;
-            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
-
-            hitResult = GameWorld.TraceLine(locationUpper,
-                                             locationLower,
-                                             TraceLineHitFlags.LiquidAll,
-                                             out hitLocation);
-
-            return (hitResult ? hitLocation : WoWPoint.Empty);
         }
     }
 

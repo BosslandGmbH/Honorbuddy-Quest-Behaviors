@@ -12,6 +12,7 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 
 using Buddy.Coroutines;
@@ -37,7 +38,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <returns></returns>
         public static async Task<bool> MountVehicle(
             int vehicleId,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Func<WoWUnit, bool> extraVehicleQualifiers = null)
         {
@@ -55,7 +56,7 @@ namespace Honorbuddy.QuestBehaviorCore
         ///   <c>true</c> if any action was taken; <c>false</c> otherwise
         /// </returns>
         public static async Task<bool> MountVehicle(
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Func<WoWUnit, bool> extraVehicleQualifiers = null,
             params int[] vehicleIds)
@@ -80,7 +81,7 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
             if (!vehicle.WithinInteractRange)
-                return await MoveTo(vehicle.Location, vehicle.SafeName, movementBy);
+                return await MoveTo(vehicle.Location, vehicle.SafeName, movementBy, vehicle.InteractRange);
 
             if (await CommonCoroutines.Dismount("Getting inside vehicle"))
                 await Coroutine.Sleep(Delay.BeforeButtonClick);

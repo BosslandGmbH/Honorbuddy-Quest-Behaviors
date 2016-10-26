@@ -23,7 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -134,7 +134,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
         }
 
 
-        private int MobCountAtLocation(WoWPoint point, float radius, params uint[] mobIds)
+        private int MobCountAtLocation(Vector3 point, float radius, params uint[] mobIds)
         {
             return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 .Count(u =>

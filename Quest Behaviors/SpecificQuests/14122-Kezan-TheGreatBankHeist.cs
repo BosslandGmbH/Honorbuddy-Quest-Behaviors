@@ -21,6 +21,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
@@ -39,6 +40,7 @@ using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 using Extensions = Styx.Common.Extensions;
+using Styx.Common;
 
 #endregion
 
@@ -59,28 +61,28 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
         // DON'T EDIT THIS--it is auto-populated by Git
         protected override string GitId => "$Id$";
 
-        private WoWPoint _wp = new WoWPoint(-8373.504, 1725.106, 39.94993);
+        private Vector3 _wp = new Vector3(-8373.504f, 1725.106f, 39.94993f);
         private int _petAbilityIndex;
 
         private readonly string[] _bossWhisperIcons =
         {
-			// Amazing G-Ray
-			"INV_Misc_EngGizmos_20.blp",
-			// Blastcrackers
-			"INV_Misc_Bomb_07.blp",
-			// Ear-O-Scope!
-			"INV_Misc_Ear_NightElf_02.blp",
-			// Infinifold Lockpick
-			"INV_Misc_EngGizmos_swissArmy.blp",
-			// Kaja'mite Drill
-			"INV_Weapon_ShortBlade_21.blp"
+            // Amazing G-Ray
+            "INV_Misc_EngGizmos_20.blp",
+            // Blastcrackers
+            "INV_Misc_Bomb_07.blp",
+            // Ear-O-Scope!
+            "INV_Misc_Ear_NightElf_02.blp",
+            // Infinifold Lockpick
+            "INV_Misc_EngGizmos_swissArmy.blp",
+            // Kaja'mite Drill
+            "INV_Weapon_ShortBlade_21.blp"
         };
 
         #region Overrides of QuestBehaviorBase
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE:
+            //// EXAMPLE: 
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -100,7 +102,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin));
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
         }
 
         public override void OnStart()
@@ -157,7 +159,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
             if (IsDone)
                 return false;
 
-            if (StyxWoW.Me.Location.DistanceSqr(_wp) > 5 * 5 && !StyxWoW.Me.HasAura(AuraId_VaultCrackingToolset))
+            if (StyxWoW.Me.Location.DistanceSquared(_wp) > 5 * 5 && !StyxWoW.Me.HasAura(AuraId_VaultCrackingToolset))
             {
                 TreeRoot.StatusText = "Moving to location";
                 Navigator.MoveTo(_wp);

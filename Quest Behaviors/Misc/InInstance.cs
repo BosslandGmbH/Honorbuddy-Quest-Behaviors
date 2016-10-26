@@ -24,10 +24,11 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -51,7 +52,7 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
             try
             {
                 DestinationName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? "";
-                Destination = GetAttributeAsNullable("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Destination = GetAttributeAsNullable("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 if (string.IsNullOrEmpty(DestinationName)) { DestinationName = Destination.ToString(); }
             }
 
@@ -73,7 +74,7 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
         #region variables
         // Attributes provided by caller
         public string DestinationName { get; private set; }
-        public WoWPoint Destination { get; private set; }
+        public Vector3 Destination { get; private set; }
 
         // Private variables for internal state
         private bool _IsBehaviorDone;

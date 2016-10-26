@@ -34,7 +34,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -313,7 +313,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
         {
             // Handle heading...
             double traveltime = target.Distance / (NurongsCannonShot_FeetPerSecond * 3.0f /*feet to yards*/);
-            WoWPoint targetLeadPoint = target.Location.RayCast(target.RenderFacing, (float)(target.MovementInfo.CurrentSpeed * traveltime));
+            Vector3 targetLeadPoint = target.Location.RayCast(target.RenderFacing, (float)(target.MovementInfo.CurrentSpeed * traveltime));
             float neededHeading = WoWMathHelper.CalculateNeededFacing(Me.Location, targetLeadPoint);
             neededHeading = WoWMathHelper.NormalizeRadian(neededHeading);
             Me.SetFacing(neededHeading);

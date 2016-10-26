@@ -40,11 +40,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Levelbot.Actions.General;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -92,10 +94,10 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
             try
             {
-                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                ClickToLocation = GetAttributeAsNullable<Vector3>("ClickTo", false, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MoveToLocation = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
@@ -124,12 +126,12 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
 
         // Attributes provided by caller
-        public WoWPoint ClickToLocation { get; private set; }
+        public Vector3 ClickToLocation { get; private set; }
         public double CollectionDistance { get; private set; }
         public int ItemId { get; private set; }
         public int[] MobIds { get; private set; }
         public double MobHpPercentLeft { get; private set; }
-        public WoWPoint MoveToLocation { get; private set; }
+        public Vector3 MoveToLocation { get; private set; }
         public NpcStateType NpcState { get; private set; }
         public int NumOfTimes { get; private set; }
         public ObjectType ObjType { get; private set; }
@@ -145,7 +147,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         // Private properties
         public int Counter { get; private set; }
         private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId); } }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<WoWGuid> _npcBlacklist = new List<WoWGuid>();
 
         private WoWObject UseObject
@@ -248,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                         ret => UseType == QBType.PointToObject,
                         new PrioritySelector(
                             new Decorator(
-                                ret => UseObject == null && Me.Location.DistanceSqr(MoveToLocation) >= 2 * 2,
+                                ret => UseObject == null && Me.Location.DistanceSquared(MoveToLocation) >= 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(MoveToLocation, "Destination", MovementBy)))),
@@ -259,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving closer to the object"),
-                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy)))),
+                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy, (float)Range)))),
                                     new Decorator(
                                         ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
@@ -295,7 +296,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
-                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy)))),
+                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy, (float)Range)))),
                                     new Decorator(
                                         ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
@@ -320,7 +321,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ctx => _waitTimer.Reset())))),
                             new Decorator(
-                                ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
+                                ret => Me.Location.DistanceSquared(MoveToLocation) > 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(MoveToLocation, "Destination", MovementBy))))

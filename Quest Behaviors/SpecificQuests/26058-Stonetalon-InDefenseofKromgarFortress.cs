@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -48,7 +48,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
         private const double WeaponAzimuthMin = -0.03491;
         private const double WeaponMuzzleVelocity = 1000;
         private const int QuestId = 26058;
-        private readonly WoWPoint _questLocation = new WoWPoint(923.4741, -0.8692548, 92.59513);
+        private readonly Vector3 _questLocation = new Vector3(923.4741f, -0.8692548f, 92.59513f);
         private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
         private bool _isDone;
@@ -86,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
                         where IsValidTarget(unit)
                         let loc = unit.Location
                         where IsInPosition(loc, myLoc)
-                        orderby myLoc.DistanceSqr(loc)
+                        orderby myLoc.DistanceSquared(loc)
                         select unit).FirstOrDefault();
             }
         }
@@ -186,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
                    (unit.Entry == 42017 || unit.Entry == 42016 || unit.Entry == 42015);
         }
 
-        private bool IsInPosition(WoWPoint unitLoc, WoWPoint myLoc)
+        private bool IsInPosition(Vector3 unitLoc, Vector3 myLoc)
         {
             return unitLoc.X > 935 && unitLoc.Y > 5 && unitLoc.Z >= myLoc.Z;
         }

@@ -45,6 +45,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -55,6 +56,7 @@ using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -103,7 +105,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
                         new[] { "ImmunityBreakingNpcIds" },
                         null);
 
-                SearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                SearchLocation = GetAttributeAsNullable<Vector3>("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
 
                 ImmunityAuraId = GetAttributeAsNullable<int>("ImmunityAuraId", true, ConstrainAs.AuraId, null) ?? 0;
                 MaxRange = GetAttributeAsNullable<double>("MaxRange", false, new ConstrainTo.Domain<double>(0, 40), null) ?? 8;
@@ -130,18 +132,13 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 
         private double MaxRange { get; set; }
 
-        private WoWPoint SearchLocation { get; set; }
+        private Vector3 SearchLocation { get; set; }
 
         private int ImmunityAuraId { get; set; }
 
         #endregion
 
         #region Private and Convenience variables
-
-        private static LocalPlayer Me
-        {
-            get { return StyxWoW.Me; }
-        }
 
         private WoWUnit SelectedNpc { get; set; }
 
@@ -197,12 +194,12 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
             if (!Query.IsViable(SelectedNpc) || !Me.IsActuallyInCombat && Targeting.Instance.FirstUnit == null)
             {
                 // move to search area
-                if (SearchLocation != WoWPoint.Zero && !Navigator.AtLocation(SearchLocation))
+                if (SearchLocation != Vector3.Zero && !Navigator.AtLocation(SearchLocation))
                 {
                     await UtilityCoroutine.MoveTo(SearchLocation, "Search Area", MovementBy);
                 }
                 // Dismount after reaching search location.
-                else if ((SearchLocation == WoWPoint.Zero || Navigator.AtLocation(SearchLocation)) && Me.Mounted)
+                else if ((SearchLocation == Vector3.Zero || Navigator.AtLocation(SearchLocation)) && Me.Mounted)
                 {
                     await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift);
                 }
@@ -230,7 +227,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
                     if (targetedMob.IsTargetingMeOrPet)
                     {
                         // move close enough to shielded NPC so that the exploding mobs will hit it when killed.
-                        var myMinDistance = Math.Max(2, MaxRange - targetedMob.MeleeRange());
+                        var myMinDistance = Math.Max(2, MaxRange - targetedMob.MeleeRange);
                         if (SelectedNpc.DistanceSqr > myMinDistance * myMinDistance)
                         {
                             TreeRoot.StatusText = string.Format("Moving closer to {0} before killing {1}", SelectedNpc.SafeName, targetedMob.SafeName);
@@ -238,7 +235,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
                             return true;
                         }
                         // wait for exploding mob to get within range of shielded mob.
-                        if (targetedMob.Location.DistanceSqr(SelectedNpc.Location) > MaxRange * MaxRange)
+                        if (targetedMob.Location.DistanceSquared(SelectedNpc.Location) > MaxRange * MaxRange)
                         {
                             TreeRoot.StatusText = string.Format(
                                 "Waiting for {0} to move withing range of {1}",

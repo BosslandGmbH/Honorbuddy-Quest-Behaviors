@@ -12,6 +12,7 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Bots.DungeonBuddy.Helpers;
 using Buddy.Coroutines;
@@ -44,7 +45,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> TurninQuest(
             int wowObjectId,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             uint questId = 0,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Action navigationFailedAction = null,
@@ -75,7 +76,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> TurninQuest(
             WoWObject wowObject,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             uint questId = 0,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Action navigationFailedAction = null,
@@ -102,11 +103,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
             if (!wowObject.WithinInteractRange)
             {
-                if (await MoveTo(wowObject.Location, wowObject.SafeName, movementBy))
+                if (await MoveTo(wowObject.Location, wowObject.SafeName, movementBy, wowObject.InteractRange))
                     return true;
 
-                if (navigationFailedAction != null)
-                    navigationFailedAction();
+                navigationFailedAction?.Invoke();
                 return false;
             }
 

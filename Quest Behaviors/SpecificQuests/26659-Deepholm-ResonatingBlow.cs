@@ -53,7 +53,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
+                //Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ??Vector3.Zero;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
@@ -120,7 +120,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                         && u.WithinInteractRange
                         && u != CurrentStone
                         && u.Guid != _lastguid)
-                    .OrderBy(u => u.Location.DistanceSqr(Dragon.Location))
+                    .OrderBy(u => u.Location.DistanceSquared(Dragon.Location))
                     .ToList();
             }
         }

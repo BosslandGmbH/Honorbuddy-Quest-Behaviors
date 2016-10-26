@@ -40,12 +40,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
@@ -78,15 +80,15 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                             + "* Please update the profile to use the VehicleMover behavior."
                             + "*****");
 
-                LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
-                LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                LocationDest = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, new[] { "Dest" }) ?? Vector3.Zero;
+                LocationMount = GetAttributeAsNullable<Vector3>("Mount", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 SpellCastId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-                MountedPoint = WoWPoint.Empty;
+                MountedPoint = Vector3.Zero;
             }
 
             catch (Exception except)
@@ -106,8 +108,8 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 
 
         // Attributes provided by caller
-        public WoWPoint LocationDest { get; private set; }
-        public WoWPoint LocationMount { get; private set; }
+        public Vector3 LocationDest { get; private set; }
+        public Vector3 LocationMount { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -124,7 +126,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
         private int Counter { get; set; }
         public bool IsMounted { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        public WoWPoint MountedPoint { get; private set; }
+        public Vector3 MountedPoint { get; private set; }
 
         #region Overrides of CustomForcedBehavior
 
@@ -188,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 
         private async Task MoveToMountLocation()
         {
-            while (Me.IsAlive && Me.Location.DistanceSqr(LocationMount) > 3 * 3)
+            while (Me.IsAlive && Me.Location.DistanceSquared(LocationMount) > 3 * 3)
             {
                 Navigator.MoveTo(LocationMount);
                 await Coroutine.Yield();
@@ -199,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 
         private async Task MoveToDestination()
         {
-            while (Me.IsAlive && Me.Location.DistanceSqr(LocationDest) > 3 * 3)
+            while (Me.IsAlive && Me.Location.DistanceSquared(LocationDest) > 3 * 3)
             {
                 Navigator.MoveTo(LocationDest);
                 await Coroutine.Yield();

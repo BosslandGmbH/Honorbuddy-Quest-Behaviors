@@ -38,20 +38,20 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Tripper.Tools.Math;
-
 using Action = Styx.TreeSharp.Action;
 #endregion
 
@@ -76,7 +76,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                 AttackButton2 = GetAttributeAsNullable<int>("AttackButtonSecondary", false, ConstrainAs.HotbarButton, new[] { "AttackIndexSecondary", "SpellIndexSecondary" }) ?? 0;
                 GoHomeButton = GetAttributeAsNullable<int>("GoHomeButton", false, ConstrainAs.HotbarButton, new[] { "HomeIndex" }) ?? 0;
                 MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 1;
-                MountedPoint = WoWPoint.Empty;
+                MountedPoint = Vector3.Zero;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new[] { "TimesToUse" }) ?? 1;
                 OftenToUse = GetAttributeAsNullable<int>("OftenToUse", false, ConstrainAs.Milliseconds, null) ?? 1000;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
@@ -111,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
         public int AttackButton2 { get; private set; }
         public int GoHomeButton { get; private set; }
         public double MaxRange { get; private set; }
-        public WoWPoint MountedPoint { get; private set; }
+        public Vector3 MountedPoint { get; private set; }
         public int OftenToUse { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -251,8 +251,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                                         new Action(
                                             ctx =>
                                             {
-                                                Vector3 v = Me.CurrentTarget.Location - StyxWoW.Me.Location;
-                                                v.Normalize();
+                                                Vector3 v = Vector3.Normalize(Me.CurrentTarget.Location - StyxWoW.Me.Location);
                                                 Lua.DoString(
                                                     string.Format(
                                                         "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta); CastPetAction({1});",

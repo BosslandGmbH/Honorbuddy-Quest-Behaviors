@@ -31,12 +31,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
@@ -66,11 +68,11 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
 
-                StartLocation = GetAttributeAsNullable<WoWPoint>("TransportStart", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                EndLocation = GetAttributeAsNullable<WoWPoint>("TransportEnd", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                GetOffLocation = GetAttributeAsNullable<WoWPoint>("GetOff", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                StandLocation = GetAttributeAsNullable<WoWPoint>("StandOn", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                WaitAtLocation = GetAttributeAsNullable<WoWPoint>("WaitAt", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                StartLocation = GetAttributeAsNullable<Vector3>("TransportStart", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
+                EndLocation = GetAttributeAsNullable<Vector3>("TransportEnd", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
+                GetOffLocation = GetAttributeAsNullable<Vector3>("GetOff", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
+                StandLocation = GetAttributeAsNullable<Vector3>("StandOn", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
+                WaitAtLocation = GetAttributeAsNullable<Vector3>("WaitAt", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
 
                 DestName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
@@ -92,12 +94,12 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
         // Attributes provided by caller
         public string DestName { get; private set; }
-        public WoWPoint EndLocation { get; private set; }
-        public WoWPoint GetOffLocation { get; private set; }
-        public WoWPoint StandLocation { get; private set; }
-        public WoWPoint StartLocation { get; private set; }
+        public Vector3 EndLocation { get; private set; }
+        public Vector3 GetOffLocation { get; private set; }
+        public Vector3 StandLocation { get; private set; }
+        public Vector3 StartLocation { get; private set; }
         public int TransportId { get; private set; }
-        public WoWPoint WaitAtLocation { get; private set; }
+        public Vector3 WaitAtLocation { get; private set; }
 
         // Private variables for internal state
         private Composite _root;
@@ -107,18 +109,18 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         protected override string GitId => "$Id$";
 
 
-        private WoWPoint TransportLocation
+        private Vector3 TransportLocation
         {
             get
             {
                 var transport = ObjectManager.GetObjectsOfType<WoWGameObject>(true, false).FirstOrDefault(o => o.Entry == TransportId);
 
                 if (transport == null)
-                    return WoWPoint.Empty;
+                    return Vector3.Zero;
 
                 //Tripper.Tools.Math.Matrix m = transport.GetWorldMatrix();
 
-                //return new WoWPoint(m.M41, m.M42, m.M43);
+                //return new Vector3(m.M41, m.M42, m.M43);
 
                 return transport.WorldLocation;
             }
@@ -135,7 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
         private async Task<bool> MainLogic()
         {
-            if (GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2 * 2)
+            if (GetOffLocation != Vector3.Zero && Me.Location.DistanceSquared(GetOffLocation) < 2 * 2)
             {
                 BehaviorDone("Successfully used the transport.");
                 return true;
@@ -143,7 +145,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
             if (Me.IsOnTransport || _usedTransport)
             {
-                if (TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5 * 1.5)
+                if (TransportLocation != Vector3.Zero && TransportLocation.DistanceSquared(EndLocation) < 1.5 * 1.5)
                 {
                     TreeRoot.StatusText = "Moving out of transport";
                     Navigator.PlayerMover.MoveTowards(GetOffLocation);
@@ -157,9 +159,9 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
             if (Me.IsMoving)
                 return false;
 
-            if (TransportLocation != WoWPoint.Empty
-                && TransportLocation.DistanceSqr(StartLocation) < 1.5 * 1.5
-                && WaitAtLocation.DistanceSqr(Me.Location) < 2 * 2)
+            if (TransportLocation != Vector3.Zero
+                && TransportLocation.DistanceSquared(StartLocation) < 1.5 * 1.5
+                && WaitAtLocation.DistanceSquared(Me.Location) < 2 * 2)
             {
                 // don't do anything that can cause toon to move off course
                 LevelBot.BehaviorFlags &= ~(BehaviorFlags.Vendor | BehaviorFlags.FlightPath | BehaviorFlags.Combat | BehaviorFlags.Loot);
@@ -168,7 +170,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 return true;
             }
 
-            if (WaitAtLocation.DistanceSqr(Me.Location) > 2 * 2)
+            if (WaitAtLocation.DistanceSquared(Me.Location) > 2 * 2)
             {
                 await UtilityCoroutine.MoveTo(WaitAtLocation, DestName, MovementBy);
                 return true;

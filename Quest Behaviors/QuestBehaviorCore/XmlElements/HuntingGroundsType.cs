@@ -57,9 +57,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Xml.Linq;
 
 using Styx;
+using Styx.Common;
 using Styx.WoWInternals;
 #endregion
 
@@ -201,7 +203,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // 22Apr2013-12:50UTC chinajade
-        public WaypointType CurrentWaypoint(WoWPoint? currentLocation = null)
+        public WaypointType CurrentWaypoint(Vector3? currentLocation = null)
         {
             currentLocation = currentLocation ?? WoWMovement.ActiveMover.Location;
 
@@ -250,14 +252,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // 22Mar2013-11:49UTC chinajade
-        private int FindIndexOfNearestWaypoint(WoWPoint location)
+        private int FindIndexOfNearestWaypoint(Vector3 location)
         {
             var indexOfNearestWaypoint = IVisitStrategy.InvalidWaypointIndex;
             var distanceSqrMin = double.MaxValue;
 
             for (var index = 0; index < Waypoints.Count; ++index)
             {
-                var distanceSqr = location.DistanceSqr(FindWaypointAtIndex(index).Location);
+                var distanceSqr = location.DistanceSquared(FindWaypointAtIndex(index).Location);
 
                 if (distanceSqr < distanceSqrMin)
                 {
@@ -271,22 +273,32 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // 11Apr2013-04:42UTC chinajade
-        public static HuntingGroundsType GetOrCreate(XElement parentElement, string elementName, WaypointType defaultHuntingGroundCenter = null)
+        public static HuntingGroundsType GetOrCreate(XElement parentElement, string elementName,
+            WaypointType defaultHuntingGroundCenter = null, double? forcedTolerance = null)
         {
             var huntingGrounds = new HuntingGroundsType(parentElement
-                                                            .Elements()
-                                                            .DefaultIfEmpty(new XElement(elementName))
-                                                            .FirstOrDefault(elem => (elem.Name == elementName)));
+                .Elements()
+                .DefaultIfEmpty(new XElement(elementName))
+                .FirstOrDefault(elem => (elem.Name == elementName)));
 
             if (!huntingGrounds.IsAttributeProblem)
             {
+                if (forcedTolerance.HasValue)
+                {
+                    foreach (var waypoint in huntingGrounds.Waypoints)
+                    {
+                        waypoint.ArrivalTolerance = forcedTolerance.Value;
+                    }
+                }
+
                 // If user didn't provide a HuntingGrounds, and he provided a default center point, add it...
                 if (!huntingGrounds.Waypoints.Any() && (defaultHuntingGroundCenter != null))
                     huntingGrounds.Waypoints.Add(defaultHuntingGroundCenter);
 
                 if (!huntingGrounds.Waypoints.Any())
                 {
-                    QBCLog.Error("Neither the X/Y/Z attributes nor the <{0}> sub-element has been specified.", elementName);
+                    QBCLog.Error("Neither the X/Y/Z attributes nor the <{0}> sub-element has been specified.",
+                        elementName);
                     huntingGrounds.IsAttributeProblem = true;
                 }
             }

@@ -22,7 +22,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
 using Styx;
@@ -43,13 +46,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
     public class q25251 : CustomForcedBehavior
     {
         private const int QuestId = 25251;
-        private readonly WoWPoint _flyloc = new WoWPoint(2120.643, 2402.012, 49.6927);
-        private readonly WoWPoint _wallyLocation = new WoWPoint(2277.934, 2420.762, 22.582);
+        private readonly Vector3 _flyloc = new Vector3(2120.643f, 2402.012f, 49.6927f);
+        private readonly Vector3 _wallyLocation = new Vector3(2277.934f, 2420.762f, 22.582f);
 
-        private CircularQueue<WoWPoint> _gallywixPath = new CircularQueue<WoWPoint>()
+        private CircularQueue<Vector3> _gallywixPath = new CircularQueue<Vector3>()
                                                         {
-                                                            new WoWPoint(2400.707, 2532.421, 4.890985),
-                                                            new WoWPoint(2298.823, 2433.5, 26.45126)
+                                                            new Vector3(2400.707f, 2532.421f, 4.890985f),
+                                                            new Vector3(2298.823f, 2433.5f, 26.45126f)
                                                         };
 
         private bool _isBehaviorDone = false;
@@ -113,8 +116,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
                             ctx => Me.QuestLog.GetQuestById(QuestId).IsCompleted,
                             new PrioritySelector(
                                 new Decorator(
-                                    ctx => Me.Location.DistanceSqr(_flyloc) > 10 * 10,
-                                    CreateBehavior_VehicleMoveTo(ctx => _flyloc, 5)),
+                                    ctx => Me.Location.DistanceSquared(_flyloc) > 10 * 10,
+                                    new NavigationAction(ctx => _flyloc)),
                                 new Sequence(
                                     new Action(ctx => Lua.DoString("VehicleExit()")),
                                     new Action(ctx => _isBehaviorDone = true)))),
@@ -136,9 +139,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
                                 ctx => ctx == null,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ctx => Me.Location.Distance2DSqr(_gallywixPath.Peek()) < 5 * 5,
+                                        ctx => Me.Location.Distance2DSquared(_gallywixPath.Peek()) < 5 * 5,
                                         new Action(ctx => _gallywixPath.Dequeue())),
-                                    CreateBehavior_VehicleMoveTo(ctx => _gallywixPath.Peek(), 5))),
+                                    new NavigationAction(ctx => _gallywixPath.Peek()))),
                             // target
                             new Decorator(
                                 ctx => Me.CurrentTarget != (WoWUnit)ctx,
@@ -147,7 +150,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
                             new Decorator(
                                 ctx => ((WoWUnit)ctx).DistanceSqr > 40 * 40
                                        || !((WoWUnit)ctx).InLineOfSpellSight,
-                                CreateBehavior_VehicleMoveTo(ctx => ((WoWUnit)ctx).Location, 5)),
+                                new NavigationAction(ctx => ((WoWUnit)ctx).Location)),
                             // stop moving after getting within range and los
                             new Decorator(ctx => WoWMovement.ActiveMover.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
                             // face
@@ -159,69 +162,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
                             new Decorator(ctx => CanUsePetButton(2), new Action(ctx => UsePetButton(2))),
                             new Decorator(ctx => CanUsePetButton(1), new Action(ctx => UsePetButton(1))))))
                 );
-        }
-
-        private Composite CreateBehavior_VehicleMoveTo(Func<object, WoWPoint> locationSelector, float? pathPrecision = null)
-        {
-            var stuckCheckSw = new Stopwatch();
-
-            var lastPoint = WoWPoint.Zero;
-
-            float originalPrecision = Navigator.PathPrecision;
-
-            // normal stuck handler doesn't trigger when in a vehicle.
-            var IsStuck = new Func<bool>(
-                () =>
-                {
-                    var result = false;
-                    if (stuckCheckSw.ElapsedMilliseconds > 2000 || !stuckCheckSw.IsRunning)
-                    {
-                        var activeMover = WoWMovement.ActiveMover;
-                        if (activeMover == null)
-                            return false;
-                        var loc = activeMover.Location;
-                        if (lastPoint != WoWPoint.Zero)
-                        {
-                            double myMovementSpeed = activeMover.IsSwimming
-                                ? activeMover.MovementInfo.SwimmingForwardSpeed
-                                : activeMover.MovementInfo.ForwardSpeed;
-                            var expectedDist = myMovementSpeed / stuckCheckSw.Elapsed.TotalSeconds * 0.5;
-                            if (loc.DistanceSqr(lastPoint) < expectedDist * expectedDist)
-                            {
-                                result = true;
-                            }
-                        }
-
-                        lastPoint = loc;
-                        stuckCheckSw.Restart();
-                    }
-                    return result;
-                });
-
-            return new Action(
-                ctx =>
-                {
-                    var result = MoveResult.Failed;
-                    if (IsStuck())
-                    {
-                        Navigator.NavigationProvider.StuckHandler.Unstick();
-                    }
-                    if (pathPrecision.HasValue)
-                    {
-                        originalPrecision = Navigator.PathPrecision;
-                        Navigator.PathPrecision = pathPrecision.Value;
-                    }
-                    try
-                    {
-                        result = Navigator.MoveTo(locationSelector(ctx));
-                    }
-                    finally
-                    {
-                        if (pathPrecision.HasValue)
-                            Navigator.PathPrecision = originalPrecision;
-                    }
-                    return Navigator.GetRunStatusFromMoveResult(result);
-                });
         }
 
         private bool CanUsePetButton(int index)

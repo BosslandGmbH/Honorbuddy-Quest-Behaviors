@@ -56,6 +56,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
 using System.Xml.Linq;
@@ -96,19 +97,19 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             {
                 Buttons = GetAttributeAsArray<int>("Buttons", false, ConstrainAs.HotbarButton, null, null);
                 DropPassengerButton = GetAttributeAsNullable<int>("DropPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-                var end = GetAttributeAsArray<WoWPoint>("EndPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                var end = GetAttributeAsArray<Vector3>("EndPath", true, ConstrainAs.Vector3NonEmpty, null, null);
 
                 if (end != null && end.Any())
                     EndLocation = end.Last();
                 else
-                    EndLocation = GetAttributeAsNullable<WoWPoint>("End", true, ConstrainAs.WoWPointNonEmpty, new[] { "DropOff" }) ?? WoWPoint.Empty;
+                    EndLocation = GetAttributeAsNullable<Vector3>("End", true, ConstrainAs.Vector3NonEmpty, new[] { "DropOff" }) ?? Vector3.Zero;
 
                 HealButton = GetAttributeAsNullable<int>("HealButton", false, ConstrainAs.HotbarButton, null) ?? 0;
                 HealPercent = GetAttributeAsNullable<double>("HealPercent", false, ConstrainAs.Percent, null) ?? 35.0;
                 ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
                 NpcList = GetAttributeAsArray<int>("NpcList", true, ConstrainAs.MobId, null, null);
                 NpcScanRange = GetAttributeAsNullable<double>("NpcScanRange", false, ConstrainAs.Range, null) ?? 10000.0;
-                var path = GetAttributeAsArray<WoWPoint>("Path", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                var path = GetAttributeAsArray<Vector3>("Path", true, ConstrainAs.Vector3NonEmpty, null, null);
                 PickUpPassengerButton = GetAttributeAsNullable<int>("PickUpPassengerButton", false, ConstrainAs.HotbarButton, null) ??
                                         0;
                 Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ??
@@ -117,7 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                 SpeedButton = GetAttributeAsNullable<int>("SpeedButton", false, ConstrainAs.HotbarButton, null) ?? 0;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-                Path = new CircularQueue<WoWPoint>();
+                Path = new CircularQueue<Vector3>();
                 path.ForEach(p => Path.Enqueue(p));
             }
 
@@ -151,7 +152,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            UsageCheck_SemanticCoherency(xElement, EndLocation == WoWPoint.Zero,
+            UsageCheck_SemanticCoherency(xElement, EndLocation == Vector3.Zero,
                 context => "You must specify a End location (EndX/EndY/EndZ) or DropOff location (DropOffX/DropOffY/DropOffZ).");
         }
 
@@ -162,7 +163,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         // Attributes provided by caller
         private int[] Buttons { get; set; }
         private int DropPassengerButton { get; set; }
-        private WoWPoint EndLocation { get; set; }
+        private Vector3 EndLocation { get; set; }
         private double HealPercent { get; set; }
         private int HealButton { get; set; }
         private int ItemId { get; set; }
@@ -176,7 +177,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         // Private variables for internal state
         // after like 15 minutes the dragon auto dies, so we need to resummon before this
         private readonly WaitTimer _flightTimer = new WaitTimer(TimeSpan.FromMinutes(13));
-        private CircularQueue<WoWPoint> Path { get; set; }
+        private CircularQueue<Vector3> Path { get; set; }
         private Composite _root;
         private double PrecisionSqr { get; set; }
 
@@ -257,7 +258,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             // handle target logic.
             await TargetLogic(target);
 
-            if (vehicleLoc.DistanceSqr(Path.Peek()) < PrecisionSqr)
+            if (vehicleLoc.DistanceSquared(Path.Peek()) < PrecisionSqr)
                 Path.Dequeue();
 
             await UseSpeedBuff();
@@ -272,7 +273,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             if (!Query.IsViable(target))
                 return;
 
-            var targetDistSqr = target.Location.DistanceSqr(Vehicle.Location);
+            var targetDistSqr = target.Location.DistanceSquared(Vehicle.Location);
 
             if (PickUpPassengerButton == 0)
             {
@@ -301,9 +302,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             pickTimer.Reset();
             while (target.IsValid && target.IsAlive && !UnitIsRidingMyVehicle(target) && Query.IsInVehicle() && !pickTimer.IsFinished)
             {
-                WoWPoint clickLocation = target.Location.RayCast(target.Rotation, 6);
+                Vector3 clickLocation = target.Location.RayCast(target.Rotation, 6);
                 clickLocation.Z += 3;
-                if (Vehicle.Location.DistanceSqr(clickLocation) > 3 * 3)
+                if (Vehicle.Location.DistanceSquared(clickLocation) > 3 * 3)
                 {
                     Flightor.MoveTo(clickLocation);
                 }
@@ -360,7 +361,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             if (!Query.IsInVehicle())
                 return false;
 
-            if (Vehicle.Location.DistanceSqr(EndLocation) >= PrecisionSqr)
+            if (Vehicle.Location.DistanceSquared(EndLocation) >= PrecisionSqr)
             {
                 await UseSpeedBuff();
                 Flightor.MoveTo(EndLocation);
@@ -418,7 +419,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         private void CycleToNearestPointInPath()
         {
             var loc = Vehicle.Location;
-            Path.CycleTo(Path.OrderBy(loc.DistanceSqr).FirstOrDefault());
+            Path.CycleTo(Path.OrderBy(vector3 => loc.DistanceSquared(vector3)).FirstOrDefault());
         }
 
         private PerFrameCachedValue<PlayerQuest> _quest;
@@ -449,7 +450,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         }
 
         private WoWGuid _targetGuid;
-        private WoWUnit FindTarget(WoWPoint location)
+        private WoWUnit FindTarget(Vector3 location)
         {
             WoWUnit target = null;
             if (_targetGuid.IsValid)
@@ -469,7 +470,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                     // if rescuing NPCs then we don't want to include those rescued by other players.
                     && (DropPassengerButton == 0 || !IsRescuedByOtherPlayer(target))
                     && u.Location.Distance2D(location) < NpcScanRange)
-                .OrderBy(u => location.Distance2DSqr(u.Location))
+                .OrderBy(u => location.Distance2DSquared(u.Location))
                 .FirstOrDefault();
 
             if (target != null)

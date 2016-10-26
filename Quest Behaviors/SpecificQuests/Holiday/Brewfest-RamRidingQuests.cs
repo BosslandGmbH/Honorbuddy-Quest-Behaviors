@@ -89,6 +89,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -99,6 +100,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -206,12 +208,12 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
         public const int MobId_Jaron = 24499; // http://www.wowhead.com/npc=24499
         public const int MobId_NeillRamstein = 23558; // http://wowhead.com/npc=23558
         public const int MobId_RamMasterRay = 24497; // http://wowhead.com/npc=24497
-        public static readonly WoWPoint RoughLocation_BecanBarleybrew = new WoWPoint(-5184.127, -611.7972, 397.1764);
-        public static readonly WoWPoint RoughLocation_CortGorestein = new WoWPoint(1167.21, -4107.191, 19.2142);
-        public static readonly WoWPoint RoughLocation_DaranThunderbrew = new WoWPoint(-5146.556, -633.5544, 397.1813);
-        public static readonly WoWPoint RoughLocation_Jaron = new WoWPoint(1206.252, -4088.099, 20.75311);
-        public static readonly WoWPoint RoughLocation_NeilRamstein = new WoWPoint(-5200.164, -491.5487, 388.4774);
-        public static readonly WoWPoint RoughLocation_RamMasterRay = new WoWPoint(1179.486, -4216.002, 23.81173);
+        public static readonly Vector3 RoughLocation_BecanBarleybrew = new Vector3(-5184.127f, -611.7972f, 397.1764f);
+        public static readonly Vector3 RoughLocation_CortGorestein = new Vector3(1167.21f, -4107.191f, 19.2142f);
+        public static readonly Vector3 RoughLocation_DaranThunderbrew = new Vector3(-5146.556f, -633.5544f, 397.1813f);
+        public static readonly Vector3 RoughLocation_Jaron = new Vector3(1206.252f, -4088.099f, 20.75311f);
+        public static readonly Vector3 RoughLocation_NeilRamstein = new Vector3(-5200.164f, -491.5487f, 388.4774f);
+        public static readonly Vector3 RoughLocation_RamMasterRay = new Vector3(1179.486f, -4216.002f, 23.81173f);
         public const int QuestId_BarkForDrohnsDistillery = 11407; // http://www.wowhead.com/quest=11407
         public const int QuestId_BarkForTchalisVoodooBrewery = 11408; // http://www.wowhead.com/quest=11408
         public const int QuestId_BarkForTheBarleybrews = 11293; // http://wowhead.com/quest=11293
@@ -449,12 +451,12 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         public class RamReacquireStrategy_GossipWithNpc : IRamReacquireStrategy
         {
-            public RamReacquireStrategy_GossipWithNpc(int questId, int gossipMobId, WoWPoint gossipMobRoughLocation, int[] gossipOptions)
+            public RamReacquireStrategy_GossipWithNpc(int questId, int gossipMobId, Vector3 gossipMobRoughLocation, int[] gossipOptions)
                 : base(questId)
             {
                 Contract.Requires(gossipMobId != 0, context => "gossipMobId != 0");
-                Contract.Requires((gossipMobRoughLocation != WoWPoint.Empty) && (gossipMobRoughLocation != WoWPoint.Zero),
-                                  context => "(gossipMobRoughLocation != WoWPoint.Empty) && (gossipMobRoughLocation != WoWPoint.Zero)");
+                Contract.Requires((gossipMobRoughLocation != Vector3.Zero) && (gossipMobRoughLocation != Vector3.Zero),
+                                  context => "(gossipMobRoughLocation != Vector3.Zero) && (gossipMobRoughLocation != Vector3.Zero)");
                 Contract.Requires(gossipOptions.Length > 0, context => "gossipOptions.Length > 0");
 
                 GossipOptions = (int[])gossipOptions.Clone();  // clone needed, because we will modify below...
@@ -469,7 +471,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             // Attributes provided by caller...
             public int[] GossipOptions { get; private set; }
             public int GossipMobId { get; private set; }
-            public WoWPoint GossipMobRoughLocation { get; private set; }
+            public Vector3 GossipMobRoughLocation { get; private set; }
 
             public override async Task<bool> Execute()
             {
@@ -573,19 +575,19 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         public class RamReacquireStrategy_DropQuestAndReacquire : IRamReacquireStrategy
         {
-            public RamReacquireStrategy_DropQuestAndReacquire(int questId, int questGiverId, WoWPoint questGiverRoughLocation)
+            public RamReacquireStrategy_DropQuestAndReacquire(int questId, int questGiverId, Vector3 questGiverRoughLocation)
                 : base(questId)
             {
                 Contract.Requires(questGiverId != 0, context => "questGiverId != 0");
-                Contract.Requires((questGiverRoughLocation != WoWPoint.Empty) && (questGiverRoughLocation != WoWPoint.Zero),
-                                  context => "(questGiverRoughLocation != WoWPoint.Empty) && (questGiverRoughLocation != WoWPoint.Zero)");
+                Contract.Requires((questGiverRoughLocation != Vector3.Zero) && (questGiverRoughLocation != Vector3.Zero),
+                                  context => "(questGiverRoughLocation != Vector3.Zero) && (questGiverRoughLocation != Vector3.Zero)");
 
                 QuestGiverId = questGiverId;
                 QuestGiverRoughLocation = questGiverRoughLocation;
             }
 
             public int QuestGiverId { get; private set; }
-            public WoWPoint QuestGiverRoughLocation { get; private set; }
+            public Vector3 QuestGiverRoughLocation { get; private set; }
 
             public override async Task<bool> Execute()
             {

@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -129,8 +130,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WhenAllIsAligned
         {
             if (!Query.IsViable(target))
                 return false;
-            var v = target.Location - StyxWoW.Me.Transport.Location;
-            v.Normalize();
+            var v = Vector3.Normalize(target.Location - StyxWoW.Me.Transport.Location);
             Lua.DoString(
                 string.Format(
                     "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);",

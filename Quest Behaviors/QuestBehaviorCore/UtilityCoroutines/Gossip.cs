@@ -12,6 +12,7 @@
 
 using System;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 
 using Buddy.Coroutines;
@@ -58,7 +59,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> Gossip(
             int wowObjectId,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Action navigationFailedAction = null,
             Action notFoundAction = null,
@@ -101,7 +102,7 @@ namespace Honorbuddy.QuestBehaviorCore
         ///     <para>doesn't match what was offered by <paramref name="wowObject" />.</para>
         /// </param>
         /// <param name="gossipEntryType">
-        ///     <para>Type gossip entry type to select. Ignored if set to Unknown.</para> 
+        ///     <para>Type gossip entry type to select. Ignored if set to Unknown.</para>
         ///		<para>If none of this type are found on current page then</para>
         ///     <para> normal gossip types are clicked through in hopes of ending on a page with this gossip type</para>
         /// </param>
@@ -112,7 +113,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <exception cref="Exception">A delegate callback throws an exception.</exception>
         public static async Task<bool> Gossip(
             WoWObject wowObject,
-            WoWPoint searchLocation,
+            Vector3 searchLocation,
             MovementByType movementBy = MovementByType.FlightorPreferred,
             Action navigationFailedAction = null,
             Action notFoundAction = null,
@@ -141,7 +142,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             if (!wowObject.WithinInteractRange)
             {
-                if (await MoveTo(wowObject.Location, wowObject.SafeName, movementBy))
+                if (await MoveTo(wowObject.Location, wowObject.SafeName, movementBy, wowObject.InteractRange))
                     return true;
 
                 navigationFailedAction?.Invoke();
@@ -213,7 +214,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     while (true)
                     {
                         var gossipEntry = GossipFrame.Instance.GossipOptionEntries.FirstOrDefault(g => g.Type == gossipEntryType);
-                        // If no gossip indices were specified then we just click through more gossip, 
+                        // If no gossip indices were specified then we just click through more gossip,
                         // hopefully it leads to the final gossip type
                         if (gossipEntry.Type != gossipEntryType)
                         {

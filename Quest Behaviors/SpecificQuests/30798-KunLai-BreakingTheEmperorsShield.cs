@@ -25,7 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -48,7 +48,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
     [CustomBehaviorFileName(@"SpecificQuests\30798-KunLai-BreakingTheEmperorsShield")]
     public class BreakingTheEmperorsShield : CustomForcedBehavior
     {
-        public delegate WoWPoint LocationDelegate(object context);
+        public delegate Vector3 LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
         public delegate double RangeDelegate(object context);
 
@@ -62,7 +62,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
             {
                 AvoidTargetsWithAura = new int[] { 118596 /*Protection of Zian*/ };
                 QuestId = 30798;
-                StartLocation = new WoWPoint(3463.548, 1527.291, 814.9634);
+                StartLocation = new Vector3(3463.548f, 1527.291f, 814.9634f);
                 TargetIds = new int[] { 60572 /*Nakk'rakas*/ };
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -86,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 
         // Variables for Attributes provided by caller
         private int[] AvoidTargetsWithAura { get; set; }
-        private WoWPoint StartLocation { get; set; }
+        private Vector3 StartLocation { get; set; }
         private int[] TargetIds { get; set; }
 
         private int QuestId { get; set; }
@@ -282,7 +282,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 
                 new Action(context =>
                 {
-                    WoWPoint destination = locationDelegate(context);
+                    Vector3 destination = locationDelegate(context);
 
                     // Try to use Navigator to get there...
                     MoveResult moveResult = Navigator.MoveTo(destination);

@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
@@ -63,9 +64,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 
 
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private readonly WoWPoint _lumberMillLocation = new WoWPoint(2427.133, -1649.115, 104.0841);
-        private readonly WoWPoint _spiderSpawnLocation = new WoWPoint(2332.387, -1694.623, 104.5099);
-        private WoWPoint _spiderScareLoc;
+        private readonly Vector3 _lumberMillLocation = new Vector3(2427.133f, -1649.115f, 104.0841f);
+        private readonly Vector3 _spiderSpawnLocation = new Vector3(2332.387f, -1694.623f, 104.5099f);
+        private Vector3 _spiderScareLoc;
         private WoWUnit _currentTarget;
         private readonly Stopwatch _noMoveBlacklistTimer = new Stopwatch();
         private WaitTimer _blacklistTimer = new WaitTimer(TimeSpan.FromSeconds(45));
@@ -155,11 +156,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 
             var moveToPoint = WoWMathHelper.CalculatePointFrom(_lumberMillLocation, _currentTarget.Location, -6);
 
-            if (moveToPoint.DistanceSqr((WoWMovement.ActiveMover ?? StyxWoW.Me).Location) > 4 * 4)
+            if (moveToPoint.DistanceSquared((WoWMovement.ActiveMover ?? StyxWoW.Me).Location) > 4 * 4)
                 return (await CommonCoroutines.MoveTo(moveToPoint)).IsSuccessful();
 
             // spider not moving? blacklist and find a new target.
-            if (_noMoveBlacklistTimer.ElapsedMilliseconds > 20000 && _currentTarget.Location.DistanceSqr(_spiderScareLoc) < 10 * 10)
+            if (_noMoveBlacklistTimer.ElapsedMilliseconds > 20000 && _currentTarget.Location.DistanceSquared(_spiderScareLoc) < 10 * 10)
             {
                 Blacklist.Add(_currentTarget, BlacklistFlags.Interact, TimeSpan.FromMinutes(3), "Spider is not moving");
                 _currentTarget = null;
@@ -175,7 +176,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
                 Me.SetFacing(_lumberMillLocation);
                 await CommonCoroutines.SleepForLagDuration();
                 await Coroutine.Sleep(200);
-                if (!_noMoveBlacklistTimer.IsRunning || _currentTarget.Location.DistanceSqr(_spiderScareLoc) >= 10 * 10)
+                if (!_noMoveBlacklistTimer.IsRunning || _currentTarget.Location.DistanceSquared(_spiderScareLoc) >= 10 * 10)
                 {
                     _noMoveBlacklistTimer.Restart();
                     _spiderScareLoc = _currentTarget.Location;

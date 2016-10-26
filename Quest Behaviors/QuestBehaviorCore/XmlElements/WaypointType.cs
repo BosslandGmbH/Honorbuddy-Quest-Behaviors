@@ -11,8 +11,9 @@
 #region Usings
 
 using System;
+using System.Numerics;
 using System.Xml.Linq;
-
+using Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol;
 using Styx;
 #endregion
 
@@ -29,7 +30,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
-                DefinedLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                DefinedLocation = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 AllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? DefaultAllowedVariance;
                 ArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, ConstrainAs.Range, null) ?? DefaultArrivalTolerance;
                 Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
@@ -51,7 +52,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        public WaypointType(WoWPoint definedLocation,
+        public WaypointType(Vector3 definedLocation,
             string name = "",
             double allowedVariance = DefaultAllowedVariance,
             double arrivalTolerance = DefaultArrivalTolerance)
@@ -68,7 +69,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public double ArrivalTolerance { get; set; }
         public double AllowedVariance { get; set; }
 
-        public bool AtLocation(WoWPoint location)
+        public bool AtLocation(Vector3 location)
         {
             return Query.AtLocation(location, Location, (float)ArrivalTolerance);
         }
@@ -77,14 +78,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         /// This is the original location with which the <see cref="WaypointType"/> was defined.
         /// This location is not affected by <see cref="AllowedVariance"/>.
         /// </summary>
-		public WoWPoint DefinedLocation { get; set; }
+		public Vector3 DefinedLocation { get; set; }
 
         /// <summary>
         /// This location is constructed from the <see cref="DefinedLocation"/> and <see cref="AllowedVariance"/>
         /// values when the waypoint is initialized.  This value will not change, unless a call to
         /// <see cref="GenerateNewVariantLocation()"/> is made.
         /// </summary>
-        public WoWPoint Location { get; set; }
+        public Vector3 Location { get; set; }
 
         public string Name { get; set; }
 
@@ -125,9 +126,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #endregion
 
 
-        private string GetDefaultName(WoWPoint wowPoint)
+        private string GetDefaultName(Vector3 Vector3)
         {
-            return string.Format("Waypoint({0})", wowPoint.ToString());
+            return string.Format("Waypoint({0})", Vector3.ToString());
         }
     }
 }

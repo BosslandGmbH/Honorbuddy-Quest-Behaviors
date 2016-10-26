@@ -30,6 +30,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <RootNamespace>Honorbuddy.Quest_Behaviors</RootNamespace>
@@ -63,6 +64,7 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
+    <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -108,8 +110,7 @@
     <Reference Include="GreyMagic">
       <HintPath>..\Dependencies\GreyMagic.dll</HintPath>
     </Reference>
-    <Reference Include="Honorbuddy, Version=2.6.15657.1369, Culture=neutral, PublicKeyToken=50a565ab5c01ae50, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="Honorbuddy">
       <HintPath>..\Dependencies\Honorbuddy.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
@@ -119,19 +120,15 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data.SQLite">
-      <HintPath>..\Dependencies\System.Data.SQLite.dll</HintPath>
+    <Reference Include="System.Data.SQLite, Version=1.0.92.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Styx\branches\NewNav\Honorbuddy\bin\Debug\System.Data.SQLite.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="Tripper.RecastManaged">
-      <HintPath>..\Dependencies\Tripper.RecastManaged.dll</HintPath>
-    </Reference>
-    <Reference Include="Tripper.Tools">
-      <HintPath>..\Dependencies\Tripper.Tools.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbandonQuest.cs" />
@@ -179,13 +176,12 @@
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query.cs" />
-    <Compile Include="QuestBehaviorCore\Utility\Query_Database.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Contract.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_FullInfo.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_LocalPlayer.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_TreeSharp.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWObject.cs" />
-    <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWPoint.cs" />
+    <Compile Include="QuestBehaviorCore\Extensions\Extensions_Vector3.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWUnit.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorCoreSettings.cs" />
     <Compile Include="QuestBehaviorCore\UtilitiesDeprecation.cs" />

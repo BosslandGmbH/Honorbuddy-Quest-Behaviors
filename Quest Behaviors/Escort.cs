@@ -46,9 +46,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -96,8 +98,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 DefendType = GetAttributeAsNullable<DefendUnitType>("DefendType", false, null, null) ?? DefendUnitType.Unit;
                 MobType = GetAttributeAsNullable<ObjectType>("MobType", false, null, new[] { "ObjectType" }) ?? ObjectType.Npc;
 
-                EscortDestination = GetAttributeAsNullable("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                Location = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                EscortDestination = GetAttributeAsNullable("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
+                Location = GetAttributeAsNullable("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
                 ItemId = GetAttributeAsNullable("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
                 ObjectId = GetNumberedAttributesAsArray("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
                 MaxRange = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 20;
@@ -123,12 +125,12 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 
 
         // Attributes provided by caller
-        public WoWPoint EscortDestination { get; private set; }
+        public Vector3 EscortDestination { get; private set; }
         public EscortUntilType EscortUntil { get; private set; }
         public DefendUnitType DefendType { get; private set; }
         public ObjectType MobType { get; private set; }
 
-        public WoWPoint Location { get; private set; }
+        public Vector3 Location { get; private set; }
         public int ItemId { get; private set; }
         public int[] ObjectId { get; private set; }
         public double MaxRange { get; private set; }

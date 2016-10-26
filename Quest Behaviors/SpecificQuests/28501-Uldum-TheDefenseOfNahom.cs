@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -133,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
                         ctx => info.Update(),
                         CreateBehavior_CheckQuestCompletion(),
 
-                        new Decorator(ctx => info.RadianceTarget != WoWPoint.Empty && CanCastPetSpell(3),
+                        new Decorator(ctx => info.RadianceTarget != Vector3.Zero && CanCastPetSpell(3),
                             new Action(
                                 ctx =>
                                 {
@@ -141,7 +141,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
                                     // return RunStatus.Failure;
                                 })),
 
-                        new Decorator(ctx => info.VolleyPosition != WoWPoint.Empty && CanCastPetSpell(2),
+                        new Decorator(ctx => info.VolleyPosition != Vector3.Zero && CanCastPetSpell(2),
                             new Action(
                                 ctx =>
                                 {
@@ -149,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
                                     //return RunStatus.Failure;
                                 })),
 
-                        new Decorator(ctx => info.ChampionRallyPosition != WoWPoint.Empty && CanCastPetSpell(1),
+                        new Decorator(ctx => info.ChampionRallyPosition != Vector3.Zero && CanCastPetSpell(1),
                             new Action(ctx => CastPetSpell(1, info.ChampionRallyPosition)))
 
                         )));
@@ -172,11 +172,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
             return !Me.PetSpells[slot - 1].Cooldown;
         }
 
-        private void CastPetSpell(int slot, WoWPoint targetPosition = new WoWPoint())
+        private void CastPetSpell(int slot, Vector3 targetPosition = new Vector3())
         {
             QBCLog.Info("[Pet] Casting {0}", Me.PetSpells[slot - 1].Spell.Name);
             Lua.DoString("CastPetAction({0})", slot);
-            if (targetPosition != WoWPoint.Zero)
+            if (targetPosition != Vector3.Zero)
                 SpellManager.ClickRemoteLocation(targetPosition);
         }
 
@@ -188,54 +188,54 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
 
             private const uint RamkahenChampionId = 45643;
             private const uint RamkahenArcherId = 45679;
-            private readonly WoWPoint _encounterLocaction = new WoWPoint(-9762.981, -1693.467, 22.2556);
+            private readonly Vector3 _encounterLocaction = new Vector3(-9762.981f, -1693.467f, 22.2556f);
 
-            public WoWPoint VolleyPosition { get; private set; }
-            public WoWPoint ChampionRallyPosition { get; private set; }
-            public WoWPoint RadianceTarget { get; private set; }
+            public Vector3 VolleyPosition { get; private set; }
+            public Vector3 ChampionRallyPosition { get; private set; }
+            public Vector3 RadianceTarget { get; private set; }
 
             internal EncounterInfo Update()
             {
                 var hostileForces = (from unit in ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
                                      where unit.FactionId == 2334 && unit.IsAlive
                                      let loc = unit.Location
-                                     orderby loc.DistanceSqr(_encounterLocaction)
+                                     orderby loc.DistanceSquared(_encounterLocaction)
                                      // project WoWUnit.Location to minimize the number of injections.
                                      select new { Location = loc, Unit = unit }).ToList();
 
                 var friendlyForces = (from unit in ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
                                       where unit.FactionId == 2333 && unit.IsAlive
                                       let loc = unit.Location
-                                      orderby loc.DistanceSqr(_encounterLocaction)
+                                      orderby loc.DistanceSquared(_encounterLocaction)
                                       select new { Location = loc, Unit = unit }).ToList();
 
                 var bestVolleyTarget =
                     hostileForces.OrderByDescending(
-                        u => hostileForces.Count(v => v != u && v.Location.DistanceSqr(u.Location) < 10 * 10)).FirstOrDefault();
+                        u => hostileForces.Count(v => v != u && v.Location.DistanceSquared(u.Location) < 10 * 10)).FirstOrDefault();
 
                 VolleyPosition = bestVolleyTarget != null
                     ? bestVolleyTarget.Location.RayCast(
                         WoWMathHelper.NormalizeRadian(bestVolleyTarget.Unit.Rotation),
                         bestVolleyTarget.Location.Distance(_encounterLocaction) *
                         bestVolleyTarget.Unit.MovementInfo.CurrentSpeed * 0.04f)
-                    : WoWPoint.Empty;
+                    : Vector3.Zero;
 
                 var nearbyHostileUnit =
-                    hostileForces.FirstOrDefault(u => u.Location.DistanceSqr(_encounterLocaction) <= 30 * 30);
+                    hostileForces.FirstOrDefault(u => u.Location.DistanceSquared(_encounterLocaction) <= 30 * 30);
 
                 ChampionRallyPosition = nearbyHostileUnit != null &&
                                         !friendlyForces.Any(
                                             u =>
                                                 u.Unit.Entry == RamkahenChampionId &&
-                                                u.Location.DistanceSqr(nearbyHostileUnit.Location) < 12 * 12)
+                                                u.Location.DistanceSquared(nearbyHostileUnit.Location) < 12 * 12)
                     ? nearbyHostileUnit.Location
-                    : WoWPoint.Empty;
+                    : Vector3.Zero;
 
                 var radianceTargetUnit =
                     friendlyForces.Where(u => u.Unit.HealthPercent < 70).OrderByDescending(u => friendlyForces.Count(v => v.Unit.HealthPercent < 70))
                         .FirstOrDefault() ?? nearbyHostileUnit;
 
-                RadianceTarget = radianceTargetUnit != null ? radianceTargetUnit.Location : WoWPoint.Empty;
+                RadianceTarget = radianceTargetUnit != null ? radianceTargetUnit.Location : Vector3.Zero;
                 return this;
             }
         }

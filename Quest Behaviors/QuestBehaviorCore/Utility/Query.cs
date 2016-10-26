@@ -14,11 +14,13 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 
 using JetBrains.Annotations;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Bars;
@@ -38,9 +40,8 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         /// <summary>Determines if toon is within a tolerable proximity of <paramref name="location" />.</summary>
         /// <param name="location">The location.</param>
-        /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
-        /// <returns></returns>
-        public static bool AtLocation(WoWPoint location, float? tolerance)
+        /// <param name="tolerance">The tolerance. If <c>null</c>: Falls back to use <see cref="Navigator.AtLocation(Vector3,Vector3)"/>.</param>
+        public static bool AtLocation(Vector3 location, float? tolerance)
         {
             return AtLocation((WoWMovement.ActiveMover ?? StyxWoW.Me).Location, location, tolerance);
         }
@@ -48,20 +49,22 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>Determines whether <paramref name="myLoc" /> is within a tolerable proximity of <paramref name="location" />.</summary>
         /// <param name="myLoc">My loc.</param>
         /// <param name="location">The location.</param>
-        /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
-        /// <returns></returns>
-        public static bool AtLocation(WoWPoint myLoc, WoWPoint location, float? tolerance)
+        /// <param name="tolerance">The tolerance. If <c>null</c>: Falls back to use <see cref="Navigator.AtLocation(Vector3,Vector3)"/>.</param>
+        public static bool AtLocation(Vector3 myLoc, Vector3 location, float? tolerance)
         {
-            var tol = tolerance ?? Navigator.PathPrecision;
+            if (!tolerance.HasValue)
+                return Navigator.AtLocation(myLoc, location);
+
+            float tol = tolerance.Value;
             // We are checking if point is in an upright cylinder whose center is positioned at 'location',
             // radius set to 'tolerance' and height set to max(4.5, 'tolerance') x 2.
             // This is the most suitable method when using mesh navigation because the mesh is often above or below the
             // actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that
             // is greater then the maximum terrain/mesh Z coord difference
-            return myLoc.Distance2DSqr(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);
+            return myLoc.Distance2DSquared(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);
         }
 
-        public static IEnumerable<Blackspot> FindCoveringBlackspots(WoWPoint location)
+        public static IEnumerable<Blackspot> FindCoveringBlackspots(Vector3 location)
         {
             return
                 from blackspot in BlackspotManager.GetAllCurrentBlackspots()
@@ -111,43 +114,11 @@ namespace Honorbuddy.QuestBehaviorCore
                         && !wowUnit.PlayerControlled
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                    orderby wowUnit.Location.CollectionDistance()
+                    orderby wowUnit.CollectionDistance()
                     select wowUnit)
                     .ToList();
             }
         }
-
-
-        public static List<WoWUnit> FindMobsWithinAggroRange(
-            WoWPoint destination,
-            bool ignoreMobsInBlackspots,
-            double nonCompeteDistance,
-            IEnumerable<int> excludedUnitIds = null,
-            double extraRangePadding = 0.0)
-        {
-            excludedUnitIds = excludedUnitIds ?? Enumerable.Empty<int>();
-
-            using (StyxWoW.Memory.AcquireFrame())
-            {
-                return
-                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                     where
-                        IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
-                        && wowUnit.IsHostile
-                        // exclude opposing faction: both players and their pets show up as "PlayerControlled"
-                        && !wowUnit.PlayerControlled
-                        // exclude any units that are candidates for interacting
-                        && !excludedUnitIds.Contains((int)wowUnit.Entry)
-                        // Do not pull mobs on the AvoidMobs list
-                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                     let collectionDistance = destination.CollectionDistance(wowUnit.Location)
-                     where collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding)
-                     orderby wowUnit.DistanceSqr
-                     select wowUnit)
-                    .ToList();
-            }
-        }
-
 
         /// <summary>
         /// <para>Locates the mount identified by MOUNTNAMEORID in the provided MOUNTLIST.</para>
@@ -198,7 +169,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 25Feb2013-12:50UTC chinajade
-        public static IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius, ProvideBoolDelegate extraQualifiers = null)
+        public static IEnumerable<WoWPlayer> FindPlayersNearby(Vector3 location, double radius, ProvideBoolDelegate extraQualifiers = null)
         {
             extraQualifiers = extraQualifiers ?? (wowPlayerContext => true);
 
@@ -222,7 +193,7 @@ namespace Honorbuddy.QuestBehaviorCore
                    where ids.Contains((int)wowUnit.Entry)
                        && (extraQualifiers == null || extraQualifiers(wowUnit))
                        && wowUnit.CanInteractNow
-                   orderby wowUnit.Location.CollectionDistance()
+                   orderby wowUnit.CollectionDistance()
                    select wowUnit;
         }
 
@@ -267,7 +238,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 return isAchievementComplete && wasEarnedByMe;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -646,7 +617,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return
                 (movementBy != MovementByType.NavigatorOnly)
-                || Navigator.CanNavigateFully(StyxWoW.Me.Location, wowObject.Location);
+                // TODO: Rewrite usages to examine paths after generation instead
+                || /*Navigator.CanNavigateFully(StyxWoW.Me.Location, wowObject.Location)*/true;
         }
 
 
@@ -696,11 +668,11 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <returns></returns>
         public static bool IsTargetInBlackspot(WoWObject wowObject)
         {
-            Func<WoWPoint, Blackspot, bool> isInBlackspot =
+            Func<Vector3, Blackspot, bool> isInBlackspot =
                 (location, blackspot) =>
                 {
                     return
-                        (blackspot.Location.DistanceSqr(location) <= (blackspot.Radius * blackspot.Radius))
+                        (blackspot.Location.DistanceSquared(location) <= (blackspot.Radius * blackspot.Radius))
                         && (location.Z >= (blackspot.Location.Z - blackspot.Height))
                         && (location.Z <= (blackspot.Location.Z + blackspot.Height));
                 };

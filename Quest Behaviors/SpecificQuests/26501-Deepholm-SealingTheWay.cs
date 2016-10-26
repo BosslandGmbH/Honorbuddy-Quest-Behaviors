@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Bots.Grind;
 using Buddy.Coroutines;
@@ -113,7 +114,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         }
 
 
-        private WoWUnit Geomancer(WoWPoint loc)
+        private WoWUnit Geomancer(Vector3 loc)
         {
             return
                 ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -126,7 +127,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         }
 
 
-        private WoWUnit Bad(WoWPoint loc)
+        private WoWUnit Bad(Vector3 loc)
         {
             return
                 ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -163,12 +164,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         }
 
 
-        private WoWPoint[] _spots = new WoWPoint[]
+        private Vector3[] _spots = new Vector3[]
         {
-            new WoWPoint(411.33,1659.2,348.8838),
-            new WoWPoint(420.792,1718.1,349.4922),
-            new WoWPoint(457.47,1727.42,348.5146),
-            new WoWPoint(491.014,1659.59,348.2862)
+            new Vector3(411.33f,1659.2f,348.8838f),
+            new Vector3(420.792f,1718.1f,349.4922f),
+            new Vector3(457.47f,1727.42f,348.5146f),
+            new Vector3(491.014f,1659.59f,348.2862f)
         };
 
 

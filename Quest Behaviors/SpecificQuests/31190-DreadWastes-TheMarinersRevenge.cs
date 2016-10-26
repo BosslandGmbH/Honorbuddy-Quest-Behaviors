@@ -100,7 +100,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheMarinersRevenge
                     new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
+                        CharacterSettings.Instance.UseGroundMount = true;
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));

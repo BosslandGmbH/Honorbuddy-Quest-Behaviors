@@ -31,7 +31,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -53,7 +53,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
     [CustomBehaviorFileName(@"SpecificQuests\30078-FourWinds-CleaningHouse")]
     public class FourWindsCleaningHouse : CustomForcedBehavior
     {
-        private bool _isBehaviorDone;
         private Composite _root;
 
         public FourWindsCleaningHouse(Dictionary<string, string> args)
@@ -103,14 +102,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
 
         #region Overrides of CustomForcedBehavior
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+        public override bool IsDone => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
 
         public override void OnFinished()
         {
@@ -163,7 +155,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
 
         private Composite CreateBehavior_OutdoorsBehavior()
         {
-            var chenOutsideLoc = new WoWPoint(-709.4158, 1266.86, 136.0237);
+            var chenOutsideLoc = new Vector3(-709.4158f, 1266.86f, 136.0237f);
             WoWUnit chenOutside = null;
             // moveto and talk to Chen when outside the dungeon.
             return new Decorator(
@@ -213,12 +205,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
         private Composite CreateBehavior_TalkToChenInside()
         {
             WoWUnit chen = null;
-            WoWPoint insideLoc = new WoWPoint(-676.3004, 1174.42, 139.1725);
+            Vector3 insideLoc = new Vector3(-676.3004f, 1174.42f, 139.1725f);
             return
                 new PrioritySelector(
                     ctx => chen = ObjectManager.GetObjectsOfTypeFast<WoWUnit>().FirstOrDefault(o => o.Entry == ChenInsideId),
                     new Decorator(
-                        ctx => chen != null && chen.DistanceSqr <= 40 * 40 && chen.CanGossip && chen.Location.DistanceSqr(insideLoc) < 1,
+                        ctx => chen != null && chen.DistanceSqr <= 40 * 40 && chen.CanGossip && chen.Location.DistanceSquared(insideLoc) < 1,
                         new PrioritySelector(
                             new Decorator(ctx => chen.DistanceSqr > 4 * 4, new Action(ctx => Navigator.MoveTo(chen.Location))),
                             new Decorator(ctx => Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
@@ -230,12 +222,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
 
         private const int EddyId = 58014;
         private const int TinyBubbleId = 210231;
-        private WoWPoint _tinyBubbleMoveTo;
+        private Vector3 _tinyBubbleMoveTo;
 
         private Composite CreateBehavior_KillEddy()
         {
             WoWUnit eddy = null;
-            WoWPoint tinyBubbleMoveTo = WoWPoint.Zero;
+            Vector3 tinyBubbleMoveTo = Vector3.Zero;
             const int wateryShieldPopSpellId = 110198;
             const int wateryShieldSpellId = 110189;
             return new PrioritySelector(
@@ -246,7 +238,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
                         ctx => tinyBubbleMoveTo = GetTinyBubbleMoveTo(),
                         // pop some bubbles until the watery shield can be removed from Eddy
                         new Decorator(
-                            ctx => eddy.HasAura(wateryShieldSpellId) && tinyBubbleMoveTo != WoWPoint.Zero,
+                            ctx => eddy.HasAura(wateryShieldSpellId) && tinyBubbleMoveTo != Vector3.Zero,
                             new Action(ctx => Navigator.MoveTo(tinyBubbleMoveTo))),
                         // pop the watery shield on eddy.
                         new Decorator(
@@ -265,17 +257,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
                 new Action(ctx => RunStatus.Failure));
         }
 
-        private WoWPoint GetTinyBubbleMoveTo()
+        private Vector3 GetTinyBubbleMoveTo()
         {
             var myLoc = Me.Location;
-            if (_tinyBubbleMoveTo != WoWPoint.Empty && _tinyBubbleMoveTo.DistanceSqr(myLoc) > 4 * 4)
+            if (_tinyBubbleMoveTo != Vector3.Zero && _tinyBubbleMoveTo.DistanceSquared(myLoc) > 4 * 4)
                 return _tinyBubbleMoveTo;
 
             return _tinyBubbleMoveTo =
                 (from obj in ObjectManager.ObjectList
                  where obj.Entry == TinyBubbleId && !Blacklist.Contains(obj, BlacklistFlags.Interact)
                  let loc = obj.Location
-                 let distanceSqurared = loc.DistanceSqr(myLoc)
+                 let distanceSqurared = loc.DistanceSquared(myLoc)
                  where IsElegibleBubble(obj, distanceSqurared)
                  orderby distanceSqurared
                  select loc).FirstOrDefault();

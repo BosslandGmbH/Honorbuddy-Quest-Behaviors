@@ -24,7 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -92,16 +92,16 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         private static readonly WaitTimer s_moveTimer = WaitTimer.OneSecond;
         private static readonly WaitTimer s_timer = new WaitTimer(TimeSpan.FromSeconds(3));
 
-        public WoWPoint KillLocation
+        public Vector3 KillLocation
         {
             get
             {
                 if (KillSheya)
                 {
-                    return new WoWPoint(7345.96f, -942.14f, 16.92f);
+                    return new Vector3(7345.96f, -942.14f, 16.92f);
                 }
 
-                return new WoWPoint(7102.91f, -648.68f, 61.13f);
+                return new Vector3(7102.91f, -648.68f, 61.13f);
             }
         }
 

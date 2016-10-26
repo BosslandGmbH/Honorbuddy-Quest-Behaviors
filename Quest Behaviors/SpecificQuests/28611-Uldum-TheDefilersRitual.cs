@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -54,7 +54,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SpecificQuests.TheDefilersRi
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<Vector3>("", true, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
                 QuestId = 28611;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -80,7 +80,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SpecificQuests.TheDefilersRi
         private int QuestId { get; set; }
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
-        private WoWPoint Location { get; set; }
+        private Vector3 Location { get; set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;

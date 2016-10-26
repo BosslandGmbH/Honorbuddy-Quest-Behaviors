@@ -22,7 +22,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -132,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
         }
 
 
-        private WoWPoint _spot = new WoWPoint(966.1218, 3284.928, 126.7932);
+        private Vector3 _spot = new Vector3(966.1218f, 3284.928f, 126.7932f);
 
 
         private Composite GetonPole

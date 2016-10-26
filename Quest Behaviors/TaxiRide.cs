@@ -71,12 +71,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Levelbot.Actions.General;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -123,7 +125,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
                 TaxiNumber = GetAttributeAs("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
                 WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-                NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.Vector3NonEmpty, null) ?? Me.Location;
             }
 
             catch (Exception except)
@@ -144,7 +146,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
         // Attributes provided by caller
         private string DestName { get; set; }
         private int MobId { get; set; }
-        private WoWPoint NpcLocation { get; set; }
+        private Vector3 NpcLocation { get; set; }
         private NpcStateType NpcState { get; set; }
         private int QuestId { get; set; }
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
@@ -180,7 +182,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 
                     new Decorator(ret => CurrentNpc == null,
                         new PrioritySelector(
-                            new Decorator(ret => NpcLocation.DistanceSqr(Me.Location) > 10 * 10,
+                            new Decorator(ret => NpcLocation.DistanceSquared(Me.Location) > 10 * 10,
                                 new Sequence(
                                     new Action(ret => QBCLog.Info("Cant find flightmaster, Moving to place provided by profile")),
                                     new Action(ret => Flightor.MoveTo(NpcLocation)))),
@@ -188,7 +190,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
                         )
                     ),
 
-                    new Mount.ActionLandAndDismount("Interact flight master"),
+                    new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount("Interact Flightmaster"))),
 
                     new Decorator(ret => !CurrentNpc.WithinInteractRange,
                         new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
@@ -299,7 +301,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
             {
                 var npc =
                     ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
-                                 .Where(u => u.Entry == MobId && !FlightPaths.IsIgnored((uint)MobId) &&
+                                 .Where(u => u.Entry == MobId && !Blacklist.Contains(u.Guid, BlacklistFlags.Interact) &&
                                             (NpcState == NpcStateType.DontCare || u.IsAlive))
                                  .OrderBy(u => u.DistanceSqr)
                                  .FirstOrDefault();
