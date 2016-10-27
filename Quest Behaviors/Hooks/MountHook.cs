@@ -262,12 +262,12 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         private async Task<bool> PurchaseGroundMount()
         {
-            return await (Me.IsAlliance ? PurchaseGroundMount_Alliance() : PurchaseGroundMount_Horde());
+            return Me.IsAlliance ? await PurchaseGroundMount_Alliance() : await PurchaseGroundMount_Horde();
         }
 
         private async Task<bool> PurchaseFlyingMount()
         {
-            return await (Me.IsAlliance ? PurchaseFlyingMount_Alliance() : PurchaseFlyingMount_Horde());
+            return Me.IsAlliance ? await PurchaseFlyingMount_Alliance() : await PurchaseFlyingMount_Horde();
         }
 
 
@@ -412,7 +412,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                             .FirstOrDefault(g => g.Entry == GameObjectId_PortalToExodar);
 
                         if (portal == null || !portal.WithinInteractRange)
-                            return await (UtilityCoroutine.MoveTo(portal != null ? portal.Location : _exodarPortalLoc, "Exodar portal"));
+                            return await UtilityCoroutine.MoveTo(portal != null ? portal.Location : _exodarPortalLoc, "Exodar portal");
 
                         portal.Interact();
                         await CommonCoroutines.SleepForLagDuration();
@@ -653,8 +653,8 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                                       .FirstOrDefault(g => g.Entry == GameObjectId_OrbOfTranslocation);
 
             if (portal == null || !portal.WithinInteractRange)
-                return await (UtilityCoroutine.MoveTo(portal?.Location ?? _silvermoonCityPortalLoc,
-                                                      "Silvermoon City portal"));
+                return await UtilityCoroutine.MoveTo(portal?.Location ?? _silvermoonCityPortalLoc,
+                                                      "Silvermoon City portal");
 
             await CommonCoroutines.StopMoving();
             portal.Interact();
