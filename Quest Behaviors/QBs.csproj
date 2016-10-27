@@ -403,6 +403,12 @@
   <ItemGroup>
     <Folder Include="Deprecated\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\Buddy.Analyzers.1.0.6121.40770\analyzers\dotnet\cs\Buddy.Analyzers.dll" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />
