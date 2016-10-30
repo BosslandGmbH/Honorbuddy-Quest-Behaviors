@@ -994,7 +994,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                     && (AllowUseDuringCombat || !Me.Combat)
                     && (AllowUseInVehicle || !Query.IsInVehicle())
                     && (AllowUseWhileFlying || !Me.IsFlying)
-                    && (AllowUseWhileMounted || !Me.IsMounted());
+                    && (AllowUseWhileMounted || !Me.Mounted);
             }
         }
 

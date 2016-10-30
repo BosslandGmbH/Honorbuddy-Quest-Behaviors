@@ -152,10 +152,10 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
         {
             return new PrioritySelector(
                 // If we're not mounted, nothing to do...
-                new Decorator(ret => !Me.IsMounted() && !Me.IsShapeshifted(),
+                new Decorator(ret => !Me.Mounted,
                     new Action(delegate { BehaviorDone(); })),
 
-                new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift))
+                new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Dismount))
             );
         }
         #endregion

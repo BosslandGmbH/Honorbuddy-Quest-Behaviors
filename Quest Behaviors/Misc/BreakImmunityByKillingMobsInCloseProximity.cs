@@ -201,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
                 // Dismount after reaching search location.
                 else if ((SearchLocation == Vector3.Zero || Navigator.AtLocation(SearchLocation)) && Me.Mounted)
                 {
-                    await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift);
+                    await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Dismount);
                 }
                 else
                 {

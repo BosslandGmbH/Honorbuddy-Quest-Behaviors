@@ -190,7 +190,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
                         )
                     ),
 
-                    new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount("Interact Flightmaster"))),
+                    new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount("Interact Flightmaster"))),
 
                     new Decorator(ret => !CurrentNpc.WithinInteractRange,
                         new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
@@ -202,10 +202,6 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
                             new DecoratorContinue(ret => WoWMovement.ActiveMover.IsMoving,
                                 new Sequence(
                                     new Action(ret => WoWMovement.MoveStop()),
-                                    new SleepForLagDuration())),
-                            new DecoratorContinue(ret => Me.IsShapeshifted(),
-                                new Sequence(
-                                    new Action(ret => Lua.DoString("CancelShapeshiftForm()")),
                                     new SleepForLagDuration())),
                             new Action(ret => CurrentNpc.Interact()),
                             new Sleep(1000),

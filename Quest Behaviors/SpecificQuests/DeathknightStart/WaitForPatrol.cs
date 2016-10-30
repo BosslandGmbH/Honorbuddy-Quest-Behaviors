@@ -458,7 +458,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                             MovementBy))),
 
                  // Dismount once we've arrived at mob or destination...
-                 new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
+                 new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
 
                 new Decorator(ctx => StyxWoW.Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
 

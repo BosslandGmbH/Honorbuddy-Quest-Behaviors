@@ -63,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
         Vehicle,
 
         /// <summary>
-        ///     The ability is an area of effect that is centered on the caster and radiates out in every direction (360 degrees) 
+        ///     The ability is an area of effect that is centered on the caster and radiates out in every direction (360 degrees)
         ///		e.g. Thunder Clap
         /// </summary>
         PointBlankAreaOfEffect,
@@ -102,9 +102,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
     public enum MountStrategyType
     {
-        CancelShapeshift,
         Dismount,
-        DismountOrCancelShapeshift,
         Mount,
         None,
     }
@@ -187,7 +185,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public ContractException(string message = null)
             : base(message ?? string.Empty)
         {
-            // empty   
+            // empty
         }
     }
 }
