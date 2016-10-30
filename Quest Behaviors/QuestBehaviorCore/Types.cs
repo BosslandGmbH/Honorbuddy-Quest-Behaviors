@@ -102,7 +102,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
     public enum MountStrategyType
     {
+        [Obsolete("Use Dismount instead. This will be removed in the future.")]
+        CancelShapeshift,
         Dismount,
+        [Obsolete("Use Dismount instead. This will be removed in the future.")]
+        DismountOrCancelShapeshift,
         Mount,
         None,
     }

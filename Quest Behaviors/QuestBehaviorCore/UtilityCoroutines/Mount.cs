@@ -45,14 +45,18 @@ namespace Honorbuddy.QuestBehaviorCore
                 return false;
             }
 
+#pragma warning disable 618
             // Dismount needed?
-            if (mountStrategy == MountStrategyType.Dismount)
+            if (mountStrategy == MountStrategyType.Dismount ||
+                mountStrategy == MountStrategyType.CancelShapeshift ||
+                mountStrategy == MountStrategyType.DismountOrCancelShapeshift)
             {
                 if (!Me.Mounted)
                     return false;
 
                 return await CommonCoroutines.LandAndDismount("Requested by QB");
             }
+#pragma warning restore 618
 
             if (mountStrategy == MountStrategyType.Mount && Mount.UseMount && Mount.CanMount())
             {
