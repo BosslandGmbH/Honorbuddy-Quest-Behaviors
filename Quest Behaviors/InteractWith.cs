@@ -156,18 +156,13 @@
 //          If the toon is too close to the mob, the toon will move to acquire this minimum
 //          distance to the mob.
 //      PreInteractMountStrategy [optional; Default: None]
-//          [allowed values: CancelShapeshift, Dismount, DismountOrCancelShapeshift, Mount, None]
+//          [allowed values: Dismount, Mount, None]
 //          Provides the opportunity to alter the mounting state of a toon immediately prior
 //          to interacting, or using an object.  The options are defined as follows:
-//              CancelShapeshift
-//                  Cancels *any* shapeshifted form, whether it represents a 'mounted form'
-//                  or not.  Examples of non-mounted forms include a Druid's Bear or Cat Form.
 //              Dismount
 //                  Unmounts from an explicit mount, or cancels a 'mounted form'.  Examples
 //                  of mounted forms are Druid Flight Forms, Druid Travel Form, Shaman Ghost Wolf,
 //                  and Worgen Running Wild.
-//              DismountOrCancelShapeshift
-//                  Dismounts or cancel's a shapeshifted form--whichever is appropriate.
 //              Mount
 //                  Mounts the mount defined in the user's preference settings.
 //              None

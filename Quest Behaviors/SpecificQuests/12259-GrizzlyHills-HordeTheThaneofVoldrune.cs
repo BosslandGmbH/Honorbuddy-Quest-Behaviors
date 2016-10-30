@@ -10,7 +10,7 @@
 //
 
 #region Summary and Documentation
-// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255) 
+// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255)
 // Code was taken from Shak
 #endregion
 
@@ -111,8 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                     new Decorator(ctx => flamebringer == null, CreateBehavior_MoveTo(ctx => _flamebringerLocation)),
                     new Decorator(ctx => flamebringer.Distance > 5, CreateBehavior_MoveTo(ctx => flamebringer.Location)),
                     // dismount and cancel shapeshift
-                    new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(context => CommonCoroutines.Dismount("Getting on Flamebringger"))),
-                    new Decorator(ctx => Me.IsShapeshifted(), new Action(ctx => Lua.DoString("CancelShapeshiftForm()"))),
+                    new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(context => CommonCoroutines.Dismount("Getting on Flamebringger"))),
                     new Decorator(ctx => Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
                     // interact with and talk to flamebringer
                     new Decorator(ctx => !GossipFrame.Instance.IsVisible, new Action(ctx => flamebringer.Interact())),
@@ -155,7 +154,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                             new Decorator(
                                 ctx => WoWMovement.ActiveMover.CurrentTargetGuid != torvaldEriksson.Guid,
                                 new Action(ctx => torvaldEriksson.Target())),
-                            // face 
+                            // face
                             new Decorator(
                                 ctx => !WoWMovement.ActiveMover.IsSafelyFacing(torvaldEriksson, 30),
                                 new Action(ctx => torvaldEriksson.Face())),

@@ -128,7 +128,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private static async Task<bool> SetMountState(Vector3 destination, NavType navType = NavType.Fly)
         {
             // Are we mounted, and not supposed to be?
-            if (!Mount.UseMount && Me.IsMounted())
+            if (!Mount.UseMount && Me.Mounted)
             {
                 if (await ExecuteMountStrategy(MountStrategyType.Dismount))
                     return true;

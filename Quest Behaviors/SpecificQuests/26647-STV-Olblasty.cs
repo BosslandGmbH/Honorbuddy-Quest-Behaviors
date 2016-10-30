@@ -142,8 +142,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Olblasty
                         new PrioritySelector(
                             new Decorator(ctx => Me.Mounted,
                                 new ActionRunCoroutine(context => CommonCoroutines.Dismount("Getting in vehicle"))),
-                            new Decorator(ctx => Me.IsShapeshifted(),
-                                new Action(ctx => Lua.DoString("CancelShapeshiftForm()"))),
                             new Action(ctx => vehicle.Interact())))));
         }
 

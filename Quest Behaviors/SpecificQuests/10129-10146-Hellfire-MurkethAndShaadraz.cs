@@ -228,7 +228,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                                             FlightMaster.SafeName,
                                             MovementBy))),
                                 new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
-                                 new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
+                                 new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
                                 new Decorator(context => !GossipFrame.Instance.IsVisible,
                                     new Action(context => { FlightMaster.Interact(); })),
                                 new Action(context => { GossipFrame.Instance.SelectGossipOption(0); })

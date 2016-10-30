@@ -1003,7 +1003,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                                 new Decorator(context => !Navigator.AtLocation(SelectedKegBombAimPosition),
                                     new Action(context => { Navigator.MoveTo(SelectedKegBombAimPosition); })),
-                                new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
+                                new Decorator(ctx => Me.Mounted, new ActionRunCoroutine(ctx => CommonCoroutines.LandAndDismount())),
                                 new Decorator(context => Me.IsMoving,
                                     new Action(context => { WoWMovement.MoveStop(); })),
                                 new Decorator(context => !Me.IsFacing(SelectedKegBomb),

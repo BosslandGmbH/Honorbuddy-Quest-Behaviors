@@ -274,7 +274,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                         // Check if stuck...
                         new DecoratorContinue(context => _antiStuckMyLoc.DistanceSquared(_antiStuckPrevPosition) < (3 * 3),
                             new Sequence(context => _antiStuckPerformSimpleSequence = _antiStuckStuckSucceedTimer.IsFinished,
-                                new DecoratorContinue(context => Me.IsMounted() && !Me.IsFlying,
+                                new DecoratorContinue(context => Me.Mounted && !Me.IsFlying,
                                     new ActionRunCoroutine(context => CommonCoroutines.Dismount("Stuck"))),
 
                                 // Perform simple unstuck proceedure...

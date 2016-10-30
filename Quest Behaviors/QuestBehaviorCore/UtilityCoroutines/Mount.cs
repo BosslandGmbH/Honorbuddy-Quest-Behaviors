@@ -22,14 +22,6 @@ namespace Honorbuddy.QuestBehaviorCore
         ///             <item>
         ///                 <description>
         ///                     <para>
-        ///                         * A "CancelShapeshift" will cancel _any_ shapeshift form whether or not
-        ///                         that form represents a 'mounted' form or not.
-        ///                     </para>
-        ///                 </description>
-        ///             </item>
-        ///             <item>
-        ///                 <description>
-        ///                     <para>
         ///                         * A "Dismount" will unmount, or cancel a 'mounted' shapeshift form.
         ///                         Examples of the latter include: Druid Flight Form, Druid Travel Form, Shaman Ghost Wolf, Worgen
         ///                         Running Wild.
@@ -53,74 +45,49 @@ namespace Honorbuddy.QuestBehaviorCore
                 return false;
             }
 
-            // Cancel Shapeshift needed?
-            if (((mountStrategy == MountStrategyType.CancelShapeshift)
-                || (mountStrategy == MountStrategyType.DismountOrCancelShapeshift))
-                && Me.IsShapeshifted())
-            {
-                if (WoWMovement.ActiveMover.IsFlying)
-                {
-                    return await LandAndDismount();
-                }
-                TreeRoot.StatusText = "Canceling shapeshift form.";
-                Lua.DoString("CancelShapeshiftForm()");
-                return true;
-            }
-
+#pragma warning disable 618
             // Dismount needed?
-            if (((mountStrategy == MountStrategyType.Dismount)
-                || (mountStrategy == MountStrategyType.DismountOrCancelShapeshift))
-                && Me.IsMounted())
+            if (mountStrategy == MountStrategyType.Dismount ||
+                mountStrategy == MountStrategyType.CancelShapeshift ||
+                mountStrategy == MountStrategyType.DismountOrCancelShapeshift)
             {
-                if (WoWMovement.ActiveMover.IsFlying)
-                {
-                    return await LandAndDismount();
-                }
-                if (Me.IsShapeshifted())
-                {
-                    TreeRoot.StatusText = "Canceling 'mounted' shapeshift form.";
-                    Lua.DoString("CancelShapeshiftForm()");
-                    return true;
-                }
-                if (Me.IsMounted())
-                {
-                    TreeRoot.StatusText = "Dismounting";
-
-                    // Mount.Dismount() uses the Flightor landing system, which sometimes get stuck
-                    // a yard or two above the landing zone...
-                    // So, we opt to dismount via LUA since we've controlled the landing ourselves.
-                    Lua.DoString("Dismount()");
-                    return true;
-                }
-            }
-
-            if ((mountStrategy == MountStrategyType.Mount) && Mount.UseMount)
-            {
-                // Flying and Ground mounts...
-                if (!WoWMovement.ActiveMover.IsSwimming)
-                {
-                    // If flying mount is wanted, and we're not on flying mount...
-                    if (navType == NavType.Fly && !Flightor.MountHelper.Mounted && Flightor.MountHelper.CanMount)
-                    {
-                        Flightor.MountHelper.MountUp();
-                        return true;
-                    }
-                    // Try ground mount...
-                    // NB: Force mounting by specifying a large distance to destination...
-                    if (!Me.Mounted && Mount.CanMount())
-                    {
-                        if (await CommonCoroutines.SummonGroundMount())
-                        {
-                            return true;
-                        }
-                    }
-                }
-                else
-                {
-                    // Swimming mounts...
+                if (!Me.Mounted)
                     return false;
-                }
+
+                return await CommonCoroutines.LandAndDismount("Requested by QB");
             }
+#pragma warning restore 618
+
+            if (mountStrategy == MountStrategyType.Mount && Mount.UseMount && Mount.CanMount())
+            {
+                if (Me.Mounted)
+                {
+                    // Check if we should switch mounts
+                    if (navType == NavType.Fly)
+                    {
+                        if (Mount.Current.IsFlyingMount || !Flightor.IsFlyableArea())
+                            return false;
+
+                        await CommonCoroutines.LandAndDismount("Switching to flying mount");
+                    }
+                    else
+                    {
+                        // If ground nav then any mount is fine.
+                        return false;
+                    }
+                }
+
+                if (navType == NavType.Fly)
+                {
+                    if (!Flightor.CanFly)
+                        return false;
+
+                    return await CommonCoroutines.SummonFlyingMount();
+                }
+
+                return await CommonCoroutines.SummonGroundMount();
+            }
+
             return false;
         }
 

@@ -308,8 +308,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
             if (Me.IsMoving)
                 await CommonCoroutines.StopMoving();
 
-            if (Me.Mounted && await UtilityCoroutine.ExecuteMountStrategy(
-                MountStrategyType.DismountOrCancelShapeshift))
+            if (Me.Mounted && await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Dismount))
             {
                 return true;
             }

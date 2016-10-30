@@ -315,7 +315,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                 new Decorator(context => Me.IsMoving,
                     new Action(context => { Navigator.PlayerMover.MoveStop(); })),
                 new Decorator(context => Me.Mounted,
-                    new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift))),
+                    new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Dismount))),
                 new ActionFail(context =>
                 {
                     // If we got booted out of a vehicle for some reason, reset the weapons...

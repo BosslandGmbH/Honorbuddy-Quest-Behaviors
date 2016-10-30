@@ -101,32 +101,18 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             if (!Flightor.CanFly)
                 return false;
 
-            if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || StyxWoW.Me.Level >= 58))
-            {
-                if (SpellManager.CanCast("Flight Form"))
-                { SpellManager.Cast("Flight Form"); }
+            await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Mount, Styx.NavType.Fly);
 
-                else if (SpellManager.CanCast("Travel Form"))
-                { SpellManager.Cast("Travel Form"); }
-            }
-
-            else
-            {
-                Mount.FlyingMounts.First().CreatureSpell.Cast();
-                await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
-            }
-
-            // Hop off the ground. Kthx
-            await Coroutine.Sleep(2500);
             try
             {
-                WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+                WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, 500);
                 await Coroutine.Sleep(250);
             }
             finally
             {
                 Navigator.PlayerMover.MoveStop();
             }
+
             return true;
         }
 
@@ -136,11 +122,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             return new PrioritySelector(
                 new Decorator(
                     ret => MountType == ForcedMountType.Ground,
-                    new ActionRunCoroutine(ret => CommonCoroutines.SummonGroundMount())),
-
-                new Decorator(
-                    ret => MountType == ForcedMountType.Water && Mount.UnderwaterMounts.Count != 0 && StyxWoW.Me.IsSwimming,
-                    new Action(ret => Mount.UnderwaterMounts.First().CreatureSpell.Cast())),
+                    new ActionRunCoroutine(ret => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.Mount, Styx.NavType.Run))),
 
                 new Decorator(
                     ret => MountType == ForcedMountType.Flying,
@@ -166,11 +148,26 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) || StyxWoW.Me.Mounted);
+                return _isBehaviorDone // normal completion
+                       || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog,
+                                                         QuestRequirementComplete)
+                       || IsMountedCorrectly();
             }
         }
 
+        private bool IsMountedCorrectly()
+        {
+            Mount.MountWrapper curMount = Mount.Current;
+            if (curMount == null)
+                return false;
+
+            if (MountType == ForcedMountType.Flying)
+            {
+                return curMount.IsFlyingMount || !Flightor.IsFlyableArea();
+            }
+
+            return true;
+        }
 
         public override void OnStart()
         {
@@ -183,7 +180,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                this.UpdateGoalText(QuestId, "Mounting for " + MountType.ToString() + " travel");
+                this.UpdateGoalText(QuestId, "Mounting for " + MountType + " travel");
             }
         }
 
