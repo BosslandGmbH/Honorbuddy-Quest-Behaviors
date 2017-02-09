@@ -110,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             {
                 var myLoc = Me.Location;
                 return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
-                        where MobIds.Contains(u.Entry) && !u.IsDead 
+                        where MobIds.Contains(u.Entry) && !u.IsDead
                         let loc = u.Location
                         orderby loc.DistanceSquared(myLoc)
                         select u).ToList();
@@ -139,7 +139,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllianceBorntoShred
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 75721 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
+                    // http://www.wowhead.com/npc=75721 - Unmounted Shreader
+                    // http://www.wowhead.com/npc=75942 - Mounted Shreader
+                    // Shredder 75721 despawns when interacted with and player is mounted on top of a newly spanwned Shredder with ID 75942
+                    .FirstOrDefault(r => r.Entry == 75721 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
             }
         }
 

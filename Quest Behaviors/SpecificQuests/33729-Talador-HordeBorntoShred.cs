@@ -132,7 +132,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HordeBorntoShred
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 75721 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
+                    // http://www.wowhead.com/npc=75721 - Unmounted Shredder
+                    // http://www.wowhead.com/npc=75942 - Mounted Shredder
+                    // Shredder 75721 despawns when interacted with and player is mounted on top of a newly spanwned Shredder with ID 75942
+                    .FirstOrDefault(r => r.Entry == 75721 && r.Location.DistanceSquared(_startPoint) < 30 * 30);
             }
         }
 
