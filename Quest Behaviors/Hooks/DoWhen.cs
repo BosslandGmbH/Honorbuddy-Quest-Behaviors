@@ -470,7 +470,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
         private async Task<bool> MainCoroutine()
         {
             // Ignore, while in non-actionable condition...
-            if (Me.IsDead && !AllowExecutionWhileNotAlive)
+            if (!Me.IsAlive && !AllowExecutionWhileNotAlive)
                 return false;
 
             // Ignore if eating or drinking...
