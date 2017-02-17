@@ -722,7 +722,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
 
             return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
         }
 
         /// <summary>
