@@ -277,6 +277,8 @@ namespace Honorbuddy.QuestBehaviorCore
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                VariantQuestIds = GetAttributeAsArray<int>("VariantQuestIds", false, new ConstrainTo.Domain<int>(1, 10), null, null) ?? new int[0];
+
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 0;
@@ -344,6 +346,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public double NonCompeteDistance { get; protected set; }
         public int QuestId { get; protected set; }
+        public int[] VariantQuestIds { get; protected set; }
         public int QuestObjectiveIndex { get; protected set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
         public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
@@ -424,10 +427,11 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (TerminationChecksQuestProgress)
             {
-                if (Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex))
+                var questId = GetQuestOrVariantId();
+                if (Me.IsQuestObjectiveComplete(questId, QuestObjectiveIndex))
                     return true;
 
-                if (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete))
+                if (!UtilIsProgressRequirementsMet(questId, QuestRequirementInLog, QuestRequirementComplete))
                     return true;
             }
 
@@ -560,13 +564,14 @@ namespace Honorbuddy.QuestBehaviorCore
             // constructor call.
             OnStart_HandleAttributeProblem();
 
+            var questId = GetQuestOrVariantId();
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             // NB: Since the IsDone property may skip checking the 'progress conditions', we need to explicltly
             // check them here to see if we even need to start the behavior.
-            if (!(IsDone || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)))
+            if (!(IsDone || !UtilIsProgressRequirementsMet(questId, QuestRequirementInLog, QuestRequirementComplete)))
             {
-                this.UpdateGoalText(QuestId, extraGoalTextDescription);
+                this.UpdateGoalText(questId, extraGoalTextDescription);
 
                 // Start the timer to measure the behavior run time...
                 _behaviorRunTimer.Restart();
@@ -688,6 +693,32 @@ namespace Honorbuddy.QuestBehaviorCore
         //                      RangeMax, rangeEpsilon, RangeMin));
         //}
 
+        protected PlayerQuest GetQuestOrVariantInLog()
+        {
+            if (QuestId <= 0)
+                return null;
+
+            return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId) ??
+                   VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
+        }
+
+        /// <summary>
+        /// Searches player's quest log and list of completed quests for a quest specified by
+        /// <see cref="QuestId"/> and <see cref="VariantQuestIds"/>,
+        /// and returns the id if found; otherwise returns <see cref="QuestId"/>
+        /// </summary>
+        /// <returns></returns>
+        protected int GetQuestOrVariantId()
+        {
+            var questInLog = GetQuestOrVariantInLog();
+            if (questInLog != null)
+                return (int)questInLog.Id;
+
+            var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
+            var questIds = new List<int>(VariantQuestIds) {QuestId};
+            return questIds .Cast<int?>()
+                    .FirstOrDefault(id => completedQuests.Contains((uint)id.Value)) ?? QuestId;
+        }
 
         #region TargetFilters
 
@@ -842,8 +873,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return
                 (quest != null)
-                ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, questId)
-                : "In Progress (no associated quest)";
+                ? $"\"{quest.Name}\" (http://wowhead.com/quest={questId})"
+                    : "In Progress (no associated quest)";
         }
     }
 }

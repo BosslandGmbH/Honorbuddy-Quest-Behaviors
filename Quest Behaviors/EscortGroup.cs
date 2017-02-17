@@ -495,7 +495,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 BehaviorState = BehaviorStateType.InitialState;
 
-                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while Escort in progress");
+                this.UpdateGoalText(GetQuestOrVariantId(), "Looting and Harvesting are disabled while Escort in progress");
             }
         }
 
@@ -1022,18 +1022,18 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 case EscortCompleteWhenType.QuestComplete:
                     {
-                        var quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                        var quest = GetQuestOrVariantInLog();
                         return (quest == null) || quest.IsCompleted;
                     }
 
                 case EscortCompleteWhenType.QuestCompleteOrFails:
                     {
-                        var quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                        var quest = GetQuestOrVariantInLog();
                         return (quest == null) || quest.IsCompleted || IsEscortFailed(escortedUnits);
                     }
 
                 case EscortCompleteWhenType.QuestObjectiveComplete:
-                    return Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex);
+                    return Me.IsQuestObjectiveComplete((int)(GetQuestOrVariantInLog()?.Id ?? 0), QuestObjectiveIndex);
             }
 
             QBCLog.MaintenanceError("EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
@@ -1049,7 +1049,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
             if (QuestId > 0)
             {
-                PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                PlayerQuest quest = GetQuestOrVariantInLog();
                 isFailed |= quest.IsFailed;
             }
 

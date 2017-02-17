@@ -222,7 +222,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 LevelBot.BehaviorFlags &= ~BehaviorFlags.Pull;
 
                 _combatContext = new BattlefieldContext(ItemId_BlindingRageTrap, GameObjectId_BlindingRageTrap);
-                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while behavior in progress");
+                this.UpdateGoalText(GetQuestOrVariantId(), "Looting and Harvesting are disabled while behavior in progress");
             }
         }
 
