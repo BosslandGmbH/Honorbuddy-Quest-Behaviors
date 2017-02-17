@@ -150,7 +150,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
             // So we don't want to falsely inform the user of things that will be skipped.
             if (isBehaviorShouldRun)
             {
-                this.UpdateGoalText(QuestId);
+                this.UpdateGoalText(GetQuestOrVariantId());
                 TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
                                                     GetType().Name, LuaCommand, NumOfTimes, WaitTime);
 

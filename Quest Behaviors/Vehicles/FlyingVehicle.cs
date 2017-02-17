@@ -204,7 +204,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             if (isBehaviorShouldRun)
             {
                 _flightTimer.Reset();
-                this.UpdateGoalText(QuestId);
+                this.UpdateGoalText(GetQuestOrVariantId());
             }
         }
 
@@ -426,7 +426,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 
         private PlayerQuest Quest
         {
-            get { return _quest ?? (_quest = new PerFrameCachedValue<PlayerQuest>(() => Me.QuestLog.GetQuestById((uint)QuestId))); }
+            get { return _quest ?? (_quest = new PerFrameCachedValue<PlayerQuest>(GetQuestOrVariantInLog)); }
         }
 
         private PerFrameCachedValue<WoWUnit> _vehicle;

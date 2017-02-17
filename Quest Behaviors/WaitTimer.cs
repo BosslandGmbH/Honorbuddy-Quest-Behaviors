@@ -164,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
                 _timer.Reset();
 
-                this.UpdateGoalText(QuestId, "Waiting for " + _waitTimeAsString);
+                this.UpdateGoalText(GetQuestOrVariantId(), "Waiting for " + _waitTimeAsString);
             }
         }
         #endregion
