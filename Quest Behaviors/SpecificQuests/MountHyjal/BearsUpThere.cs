@@ -68,14 +68,15 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             try
             {
                 // Make certain quest is one of the ones we know how to do...
-                if (QuestId == QuestId_BearsUpThere)
+                var questId = GetQuestOrVariantId();
+                if (questId == QuestId_BearsUpThere )
                     _mobId_bearTargets = MobId_Bear;
-                else if (QuestId == QuestId_ThoseBearsUpThere)
+                else if (questId == QuestId_ThoseBearsUpThere)
                     _mobId_bearTargets = MobId_DailyBear;
                 else
                 {
                     QBCLog.Fatal("This behavior can only do QuestId({0}) or QuestId({1}).  (QuestId({2}) was seen.)",
-                        QuestId_BearsUpThere, QuestId_ThoseBearsUpThere, QuestId);
+                        QuestId_BearsUpThere, QuestId_ThoseBearsUpThere, questId);
                     IsAttributeProblem = true;
                 }
                 TerminationChecksQuestProgress = false;
@@ -356,14 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
         public bool IsClimbingTheTree { get { return Me.HasAura(AURA_CLIMBING_TREE) || Me.HasAura(AURA_CLIMBING_TREE_DAILY); } }
 
-        public bool DoWeHaveQuest
-        {
-            get
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                return quest != null;
-            }
-        }
+        public bool DoWeHaveQuest => GetQuestOrVariantInLog() != null;
 
         #region Overrides of CustomForcedBehavior
 
@@ -386,7 +380,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
             // is quest abandoned or complete?
             //  ..  move down until we auto-exit vehicle
-            if (!DoWeHaveQuest || Me.IsQuestComplete(QuestId))
+            if (!DoWeHaveQuest || Me.IsQuestComplete(GetQuestOrVariantId()))
             {
                 await ClimbDown();
                 return true;
@@ -507,7 +501,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                 }
                 else
                 {
-                    this.UpdateGoalText(QuestId);
+                    this.UpdateGoalText(GetQuestOrVariantId());
                 }
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called

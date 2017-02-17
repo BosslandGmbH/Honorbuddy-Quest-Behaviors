@@ -196,12 +196,13 @@ namespace Honorbuddy.Quest_Behaviors
 
             IsAttributeProblem |= s_behaviorDatabase.CandyBuckets.IsAttributeProblem;
 
-            CandyBucketInfo = s_behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == QuestId);
+            var questId = GetQuestOrVariantId();
+            CandyBucketInfo = s_behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == questId);
             if (CandyBucketInfo == null)
             {
                 CandyBucketInfo = CandyBucketType.Empty;
 
-                var message = string.Format("Unable to find details for Candy Bucket providing QuestId({0})", QuestId);
+                var message = $"Unable to find details for Candy Bucket providing QuestId({questId})";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
@@ -222,10 +223,9 @@ namespace Honorbuddy.Quest_Behaviors
             // If we're on the wrong map, we're done...
             if (Me.MapId != CandyBucketInfo.MapId)
             {
-                var message = string.Format("You are on the wrong continent for Candy Bucket providing QuestId({0})."
-                                            + "  Please move the toon to MapId({1}) and try again.",
-                                            QuestId,
-                                            CandyBucketInfo.MapId);
+                var message =
+                    $"You are on the wrong continent for Candy Bucket providing QuestId({GetQuestOrVariantId()})." +
+                    $"  Please move the toon to MapId({CandyBucketInfo.MapId}) and try again.";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
@@ -234,10 +234,8 @@ namespace Honorbuddy.Quest_Behaviors
             // If we're the wrong faction, we're done...
             if ((CandyBucketInfo.FactionGroup != Me.FactionGroup) && (CandyBucketInfo.FactionGroup != WoWFactionGroup.Neutral))
             {
-                var message = string.Format("QuestId({0}) is for faction group {1}, your FactionGroup is {2}.",
-                                            QuestId,
-                                            CandyBucketInfo.FactionGroup,
-                                            Me.FactionGroup);
+                var message =
+                    $"QuestId({GetQuestOrVariantId()}) is for faction group {CandyBucketInfo.FactionGroup}, your FactionGroup is {Me.FactionGroup}.";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
@@ -292,7 +290,7 @@ namespace Honorbuddy.Quest_Behaviors
                 return false;
 
             var isMounted = Me.Mounted;
-            var isQuestComplete = Me.IsQuestComplete(QuestId);
+            var isQuestComplete = Me.IsQuestComplete(GetQuestOrVariantId());
 
             // If we do the quest, we'll must do the post-quest cleanup...
             if (!isQuestComplete)

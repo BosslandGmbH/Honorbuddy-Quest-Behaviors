@@ -231,7 +231,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 CharacterSettings.Instance.PullDistance = 1;
                 CharacterSettings.Instance.UseFlightPaths = false;
 
-                this.UpdateGoalText(QuestId);
+                this.UpdateGoalText(GetQuestOrVariantId());
             }
         }
         #endregion
