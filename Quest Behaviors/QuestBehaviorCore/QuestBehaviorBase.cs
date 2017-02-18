@@ -564,7 +564,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 context => "Cannot provide both a QuestId and VariantQuestIds at same time.");
 
             UsageCheck_SemanticCoherency(Element,
-                VariantQuestIds.Length < 2,
+                VariantQuestIds.Length == 1,
                 context => "VariantQuestIds must provide at least 2 quest IDs.");
 
             if (VariantQuestIds.Any())
