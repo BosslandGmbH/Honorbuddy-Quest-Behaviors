@@ -16,6 +16,7 @@
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
 //      VariantQuestIds [REQUIRED if EscortCompleteWhen=QuestComplete; Default:empty]:
 //          [QuestId and VariantQuestIds cannot be provided at the same time]
+
 //          A comma separated list of quest Ids that are variants of QuestId.
 //          The variants have the same objectives but only have a different quest ID depending on race, class, or faction.
 //      QuestCompleteRequirement [Default:NotComplete]:
@@ -576,6 +577,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                "were found in player's quest log or have been turned in. " +
                                "This indicates that some/all of the quests specified by VariantQuestIds are not variants.");
             }
+
 
             EvaluateUsage_SemanticCoherency(Element);
 
