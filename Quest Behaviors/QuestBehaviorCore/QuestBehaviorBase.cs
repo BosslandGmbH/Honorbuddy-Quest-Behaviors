@@ -566,6 +566,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             UsageCheck_SemanticCoherency(Element,
                 VariantQuestIds.Length == 1,
+
                 context => "VariantQuestIds must provide at least 2 quest IDs.");
 
             if (VariantQuestIds.Any())
@@ -577,7 +578,10 @@ namespace Honorbuddy.QuestBehaviorCore
                                "were found in player's quest log or have been turned in. " +
                                "This indicates that some/all of the quests specified by VariantQuestIds are not variants.");
             }
+<<<<<<< 1e9cbdacf5d375d1b6755d56f34bd7dc31b6aa86
 
+=======
+>>>>>>> QuestBehaviorBase: QuestId and VariantQuestIds are now mutually exclusive
 
             EvaluateUsage_SemanticCoherency(Element);
 
@@ -720,10 +724,20 @@ namespace Honorbuddy.QuestBehaviorCore
 
         protected PlayerQuest GetQuestOrVariantInLog()
         {
+<<<<<<< 1e9cbdacf5d375d1b6755d56f34bd7dc31b6aa86
             if (VariantQuestIds.Any())
                 return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
 
             return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+=======
+            if (QuestId <= 0)
+                return null;
+            if (VariantQuestIds.Any())
+                return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
+
+            return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+>>>>>>> QuestBehaviorBase: QuestId and VariantQuestIds are now mutually exclusive
         }
 
         /// <summary>
