@@ -718,8 +718,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
         protected PlayerQuest GetQuestOrVariantInLog()
         {
-            if (QuestId <= 0)
-                return null;
             if (VariantQuestIds.Any())
                 return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
 
