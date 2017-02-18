@@ -14,6 +14,10 @@
 //
 // Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
+//      VariantQuestIds [optional; Default: empty]
+//          [Requires QuestId to be provided]
+//          A comma separated list of quest Ids that are variants of QuestId.
+//          The variants have the same objectives but only have a different quest ID depending on race, class, or faction.
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
@@ -277,7 +281,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                VariantQuestIds = GetAttributeAsArray<int>("VariantQuestIds", false, new ConstrainTo.Domain<int>(1, 10), null, null) ?? new int[0];
+                VariantQuestIds = GetAttributeAsArray<int>("VariantQuestIds", false, ConstrainAs.QuestId(this), null, null) ?? new int[0];
 
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -554,6 +558,19 @@ namespace Honorbuddy.QuestBehaviorCore
                 ((QuestObjectiveIndex > 0) && (QuestId <= 0)),
                 context => string.Format("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided",
                                         QuestObjectiveIndex));
+
+            UsageCheck_SemanticCoherency(Element,
+                (QuestId <= 0) && VariantQuestIds.Any(),
+                context => "VariantQuestIds specified, but no corresponding QuestId provided");
+
+            var questIds = new List<int>(VariantQuestIds) {QuestId};
+            var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
+            UsageCheck_SemanticCoherency(Element,
+                questIds.Count(id => Me.QuestLog.ContainsQuest((uint)id) || completedQuests.Contains((uint)id)) > 1,
+                context => $"Multiple quests specified by QuestId: {QuestId}, and VariantQuestIds: ({string.Join(", ", VariantQuestIds)}) " +
+                           "were found in player's quest log or have been turned in. " +
+                           "This indicates that some/all of the quests specified by VariantQuestIds are unique quests and not variants.");
+
             EvaluateUsage_SemanticCoherency(Element);
 
             // Deprecated attributes...
