@@ -14,8 +14,8 @@
 //
 // Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
-//      VariantQuestIds [optional; Default: empty]
-//          [Requires QuestId to be provided]
+//      VariantQuestIds [REQUIRED if EscortCompleteWhen=QuestComplete; Default:empty]:
+//          [QuestId and VariantQuestIds cannot be provided at the same time]
 //          A comma separated list of quest Ids that are variants of QuestId.
 //          The variants have the same objectives but only have a different quest ID depending on race, class, or faction.
 //      QuestCompleteRequirement [Default:NotComplete]:
@@ -560,16 +560,22 @@ namespace Honorbuddy.QuestBehaviorCore
                                         QuestObjectiveIndex));
 
             UsageCheck_SemanticCoherency(Element,
-                (QuestId <= 0) && VariantQuestIds.Any(),
-                context => "VariantQuestIds specified, but no corresponding QuestId provided");
+                QuestId > 0 && VariantQuestIds.Any(),
+                context => "Cannot provide both a QuestId and VariantQuestIds at same time.");
 
-            var questIds = new List<int>(VariantQuestIds) {QuestId};
-            var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
             UsageCheck_SemanticCoherency(Element,
-                questIds.Count(id => Me.QuestLog.ContainsQuest((uint)id) || completedQuests.Contains((uint)id)) > 1,
-                context => $"Multiple quests specified by QuestId: {QuestId}, and VariantQuestIds: ({string.Join(", ", VariantQuestIds)}) " +
-                           "were found in player's quest log or have been turned in. " +
-                           "This indicates that some/all of the quests specified by VariantQuestIds are unique quests and not variants.");
+                VariantQuestIds.Length < 2,
+                context => "VariantQuestIds must provide at least 2 quest IDs.");
+
+            if (VariantQuestIds.Any())
+            {
+                var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
+                UsageCheck_SemanticCoherency(Element,
+                    VariantQuestIds.Count(id => Me.QuestLog.ContainsQuest((uint)id) || completedQuests.Contains((uint)id)) > 1,
+                    context => $"Multiple quests provided by VariantQuestIds: ({string.Join(", ", VariantQuestIds)}) " +
+                               "were found in player's quest log or have been turned in. " +
+                               "This indicates that some/all of the quests specified by VariantQuestIds are not variants.");
+            }
 
             EvaluateUsage_SemanticCoherency(Element);
 
@@ -714,9 +720,11 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (QuestId <= 0)
                 return null;
+            if (VariantQuestIds.Any())
+                return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
 
-            return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId) ??
-                   VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
+            return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
         }
 
         /// <summary>
@@ -731,10 +739,12 @@ namespace Honorbuddy.QuestBehaviorCore
             if (questInLog != null)
                 return (int)questInLog.Id;
 
+            if (!VariantQuestIds.Any())
+                return QuestId;
+
             var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
-            var questIds = new List<int>(VariantQuestIds) {QuestId};
-            return questIds .Cast<int?>()
-                    .FirstOrDefault(id => completedQuests.Contains((uint)id.Value)) ?? QuestId;
+            return VariantQuestIds
+                    .FirstOrDefault(id => completedQuests.Contains((uint)id));
         }
 
         #region TargetFilters
