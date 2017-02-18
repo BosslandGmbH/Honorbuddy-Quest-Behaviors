@@ -1033,7 +1033,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                     }
 
                 case EscortCompleteWhenType.QuestObjectiveComplete:
-                    return Me.IsQuestObjectiveComplete((int)(GetQuestOrVariantInLog()?.Id ?? 0), QuestObjectiveIndex);
+                    return Me.IsQuestObjectiveComplete(GetQuestOrVariantId(), QuestObjectiveIndex);
             }
 
             QBCLog.MaintenanceError("EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
