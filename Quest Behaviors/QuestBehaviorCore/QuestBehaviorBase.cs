@@ -567,16 +567,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 VariantQuestIds.Length == 1,
                 context => "VariantQuestIds must provide at least 2 quest IDs.");
 
-            if (VariantQuestIds.Any())
-            {
-                var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
-                UsageCheck_SemanticCoherency(Element,
-                    VariantQuestIds.Count(id => Me.QuestLog.ContainsQuest((uint)id) || completedQuests.Contains((uint)id)) > 1,
-                    context => $"Multiple quests provided by VariantQuestIds: ({string.Join(", ", VariantQuestIds)}) " +
-                               "were found in player's quest log or have been turned in. " +
-                               "This indicates that some/all of the quests specified by VariantQuestIds are not variants.");
-            }
-
             EvaluateUsage_SemanticCoherency(Element);
 
             // Deprecated attributes...
