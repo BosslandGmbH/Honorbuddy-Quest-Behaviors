@@ -48,8 +48,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
             : base(Args)
         {
             QBCLog.BehaviorLoggingContext = this;
-
-            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git

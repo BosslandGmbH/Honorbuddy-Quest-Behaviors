@@ -14,6 +14,10 @@
 //
 // Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
+//      VariantQuestIds [REQUIRED if EscortCompleteWhen=QuestComplete; Default:empty]:
+//          [QuestId and VariantQuestIds cannot be provided at the same time]
+//          A comma separated list of quest Ids that are variants of QuestId.
+//          The variants have the same objectives but only have a different quest ID depending on race, class, or faction.
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
@@ -276,7 +280,20 @@ namespace Honorbuddy.QuestBehaviorCore
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                // NB: quest ID is stored in a field which will be used for coherency checks.
+                var questId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                var variantQuestIds =
+                    new HashSet<int>(
+                        GetAttributeAsArray("VariantQuestIds", false, ConstrainAs.QuestId(this), null, null) ??
+                        new int[0]);
+
+                if (questId != 0)
+                {
+                    if (variantQuestIds.Any())
+                        _providedQuestIdAndQuestVariantIds = true;
+                    variantQuestIds.Add(questId);
+                }
+                VariantQuestIds = variantQuestIds;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 0;
@@ -343,7 +360,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         public double NonCompeteDistance { get; protected set; }
-        public int QuestId { get; protected set; }
+
+        private readonly bool _providedQuestIdAndQuestVariantIds;
+        public IReadOnlyCollection<int> VariantQuestIds { get; protected set; }
         public int QuestObjectiveIndex { get; protected set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
         public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
@@ -424,10 +443,11 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (TerminationChecksQuestProgress)
             {
-                if (Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex))
+                var questId = GetQuestId();
+                if (Me.IsQuestObjectiveComplete(questId, QuestObjectiveIndex))
                     return true;
 
-                if (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete))
+                if (!UtilIsProgressRequirementsMet(questId, QuestRequirementInLog, QuestRequirementComplete))
                     return true;
             }
 
@@ -522,6 +542,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Concrete class overrides
+
         // Most of the time, we want a ConfigMemento to be created...
         // However, behaviors occasionally do not want this to happen (i.e., UserSettings).
         // So, we allow concrete behaviors to override this factory.
@@ -530,6 +551,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return new ConfigMemento();
         }
+
         #endregion
 
 
@@ -546,10 +568,13 @@ namespace Honorbuddy.QuestBehaviorCore
         protected bool OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
         {
             // Semantic coherency / covariant dependency checks...
+            UsageCheck_SemanticCoherency(Element, QuestObjectiveIndex > 0 && !VariantQuestIds.Any(),
+                context => $"QuestObjectiveIndex of '{QuestObjectiveIndex}' specified, but no corresponding QuestId provided");
+
             UsageCheck_SemanticCoherency(Element,
-                ((QuestObjectiveIndex > 0) && (QuestId <= 0)),
-                context => string.Format("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided",
-                                        QuestObjectiveIndex));
+                _providedQuestIdAndQuestVariantIds,
+                context => "Cannot provide both a QuestId and VariantQuestIds at same time.");
+
             EvaluateUsage_SemanticCoherency(Element);
 
             // Deprecated attributes...
@@ -560,13 +585,14 @@ namespace Honorbuddy.QuestBehaviorCore
             // constructor call.
             OnStart_HandleAttributeProblem();
 
+            var questId = GetQuestId();
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             // NB: Since the IsDone property may skip checking the 'progress conditions', we need to explicltly
             // check them here to see if we even need to start the behavior.
-            if (!(IsDone || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)))
+            if (!(IsDone || !UtilIsProgressRequirementsMet(questId, QuestRequirementInLog, QuestRequirementComplete)))
             {
-                this.UpdateGoalText(QuestId, extraGoalTextDescription);
+                this.UpdateGoalText(questId, extraGoalTextDescription);
 
                 // Start the timer to measure the behavior run time...
                 _behaviorRunTimer.Restart();
@@ -688,6 +714,33 @@ namespace Honorbuddy.QuestBehaviorCore
         //                      RangeMax, rangeEpsilon, RangeMin));
         //}
 
+        protected PlayerQuest GetQuestInLog()
+        {
+            return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id))
+                    .FirstOrDefault(q => q != null);
+        }
+
+        /// <summary>
+        /// Searches player's quest log and list of completed quests for a quest specified by
+        /// QuestId and <see cref="VariantQuestIds"/>,
+        /// and returns the id if found; otherwise returns first quest provided by QuestId/VariantQuestIds
+        /// </summary>
+        /// <returns></returns>
+        protected int GetQuestId()
+        {
+            var questInLog = GetQuestInLog();
+            if (questInLog != null)
+                return (int)questInLog.Id;
+
+            var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
+            var completedQuestId  = VariantQuestIds
+                    .FirstOrDefault(id => completedQuests.Contains((uint)id));
+
+            if (completedQuestId != 0)
+                return completedQuestId;
+
+            return VariantQuestIds.Any() ? VariantQuestIds.Min() : 0;
+        }
 
         #region TargetFilters
 
@@ -842,8 +895,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return
                 (quest != null)
-                ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, questId)
-                : "In Progress (no associated quest)";
+                ? $"\"{quest.Name}\" (http://wowhead.com/quest={questId})"
+                    : "In Progress (no associated quest)";
         }
     }
 }

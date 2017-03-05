@@ -306,6 +306,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         public override void OnStart()
         {
+            var questId = GetQuestId();
             if (RidingPath.Waypoints.Count <= 0)
             {
                 QBCLog.Fatal("<RidingPath> sub-element is not defined, or has no waypoints.");
@@ -321,11 +322,11 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             }
 
             // Locate strategies for identified quest?
-            _ramReacquireStrategy = _ramReacquireStrategies.FirstOrDefault(s => s.QuestId == QuestId);
-            _ridingStrategy = _ridingStrategies.FirstOrDefault(s => s.QuestId == QuestId);
+            _ramReacquireStrategy = _ramReacquireStrategies.FirstOrDefault(s => s.QuestId == questId);
+            _ridingStrategy = _ridingStrategies.FirstOrDefault(s => s.QuestId == questId);
             if (_ridingStrategy == null)
             {
-                var message = string.Format("QuestId {0} is not supported by this behavior", QuestId);
+                var message = $"QuestId {questId} is not supported by this behavior";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
@@ -338,8 +339,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             // To make this work, we need to select the appropriate riding strategy (above), yet set the QuestId
             // to zero, so the 'quest complete' logic works as expected (I.e., we're not doing the behavior
             // in a context of a quest).
-            if ((QuestId == QuestId_BrewForBrewfest_Alliance) | (QuestId == QuestId_BrewForBrewfest_Horde))
-                QuestId = 0;
+            if ((questId == QuestId_BrewForBrewfest_Alliance) | (questId == QuestId_BrewForBrewfest_Horde))
+                VariantQuestIds = new List<int>();
 
             // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
@@ -347,7 +348,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
             if (!isBehaviorShouldRun)
             {
-                BehaviorDone(string.Format("Behavior for Quest({0}) appears complete.", QuestId));
+                BehaviorDone(string.Format("Behavior for Quest({0}) appears complete.", questId));
                 return;
             }
 
@@ -369,12 +370,13 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         private async Task<bool> MainCoroutine()
         {
-            var isQuestComplete = Me.IsQuestComplete(QuestId);
+            var questId = GetQuestId();
+            var isQuestComplete = Me.IsQuestComplete(questId);
 
             // If quest is complete, we're done...
-            if (HasQuest(QuestId) && isQuestComplete)
+            if (HasQuest(questId) && isQuestComplete)
             {
-                BehaviorDone(string.Format("Quest {0} complete.", QuestId));
+                BehaviorDone(string.Format("Quest {0} complete.", questId));
                 return false;
             }
 
@@ -385,7 +387,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             {
                 if (_ramReacquireStrategy == null)
                 {
-                    BehaviorDone(string.Format("Terminating: No ram re-acquire for Quest({0}) available.", QuestId));
+                    BehaviorDone(string.Format("Terminating: No ram re-acquire for Quest({0}) available.", GetQuestId()));
                     return false;
                 }
 

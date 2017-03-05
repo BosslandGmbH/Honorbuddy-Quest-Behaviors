@@ -69,7 +69,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         {
             try
             {
-                QuestId = 12779;
+                VariantQuestIds = new HashSet<int> { 12779 };
                 TerminationChecksQuestProgress = false;
 
                 ActionBarIndex_Attack = GetAttributeAsNullable<int>("AttackSpellIndex", true, ConstrainAs.SpellId, null) ?? 0;
@@ -260,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         private Composite StateBehaviorPS_MountingVehicle()
         {
             return new PrioritySelector(
-                new Decorator(context => Me.IsQuestComplete(QuestId),
+                new Decorator(context => Me.IsQuestComplete(GetQuestId()),
                     new Action(context => { BehaviorDone(string.Format("quest complete")); })),
 
                 // If we're mounted on something other than the dragon, then dismount...
@@ -341,7 +341,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                     })),
 
                 // If quest is complete, then head back...
-                new Decorator(context => Me.IsQuestComplete(QuestId),
+                new Decorator(context => Me.IsQuestComplete(GetQuestId()),
                     new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
 
                 new CompositeThrottle(Throttle.UserUpdate,
@@ -359,7 +359,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                         // Try to find target...
                         new ActionFail(context =>
                         {
-                            SelectedTarget = FindMobToKill(!Me.IsQuestObjectiveComplete(QuestId, 2)
+                            SelectedTarget = FindMobToKill(!Me.IsQuestObjectiveComplete(GetQuestId(), 2)
                                                             ? MobId_ScarletBallista
                                                             : MobId_TirisfalCrusader);
                         }),

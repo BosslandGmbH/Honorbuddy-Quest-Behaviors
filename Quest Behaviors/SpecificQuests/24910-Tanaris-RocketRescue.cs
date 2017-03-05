@@ -69,7 +69,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         {
             try
             {
-                QuestId = Me.IsAlliance ? 25050 : 24910;
+                VariantQuestIds = new HashSet<int> {Me.IsAlliance ? 25050 : 24910};
                 TerminationChecksQuestProgress = false;
 
                 AuraId_EmergencyRocketPack = 75730;         // http://wowhead.com/spell=75730 (applies to us)
@@ -257,7 +257,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
         private async Task<bool> StateCoroutine_MountingVehicle()
         {
-            if (Me.IsQuestComplete(QuestId))
+            if (Me.IsQuestComplete(GetQuestId()))
             {
                 BehaviorDone();
                 return true;
@@ -363,7 +363,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
             }
 
             // If quest is complete, then head back...
-            if (Me.IsQuestComplete(QuestId))
+            if (Me.IsQuestComplete(GetQuestId()))
             {
                 BehaviorState = BehaviorStateType.ReturningToBase;
                 return true;
@@ -377,13 +377,14 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
             // Select new best target, if our current one is no longer useful...
             if (!IsViableForTargeting(SelectedTarget))
             {
-                if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 1))
+                var questId = GetQuestId();
+                if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(questId, 1))
                 {
                     SelectedTarget = FindBestTarget(MobId_Objective1_SteamwheedleSurvivor);
                     WeaponChoice = WeaponLifeRocket;
                 }
 
-                if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 2))
+                if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(questId, 2))
                 {
                     SelectedTarget = FindBestTarget(MobId_Objective2_SouthseaBlockader);
                     WeaponChoice = WeaponPirateDestroyingBomb;

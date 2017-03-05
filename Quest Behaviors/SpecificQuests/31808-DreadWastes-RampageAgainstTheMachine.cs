@@ -55,7 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
 
             try
             {
-                QuestId = 31808;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                VariantQuestIds = new HashSet<int> { 31808 };
             }
 
             catch (Exception except)

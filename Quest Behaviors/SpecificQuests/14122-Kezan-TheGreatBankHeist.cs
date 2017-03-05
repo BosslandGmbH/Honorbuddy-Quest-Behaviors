@@ -55,7 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
         {
             QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = 14122;
+            VariantQuestIds = new HashSet<int> {14122};
         }
 
         // DON'T EDIT THIS--it is auto-populated by Git

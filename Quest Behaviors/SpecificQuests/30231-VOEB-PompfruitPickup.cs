@@ -50,7 +50,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 
             try
             {
-                QuestId = 30231;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                VariantQuestIds = new HashSet<int> {30231}; //GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestObjectiveIndex = 1;
             }
             catch (Exception except)

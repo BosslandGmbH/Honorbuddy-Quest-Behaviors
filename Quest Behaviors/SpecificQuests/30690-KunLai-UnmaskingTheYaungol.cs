@@ -83,7 +83,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 
             try
             {
-                QuestId = 30690; // http://wowhead.com/quest=30690
+                VariantQuestIds = new HashSet<int> {30690}; // http://wowhead.com/quest=30690
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
 
@@ -184,11 +184,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            var questId = GetQuestId();
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)questId);
 
-            if ((QuestId != 0) && (quest == null))
+            if ((questId != 0) && (quest == null))
             {
-                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", questId);
                 IsAttributeProblem = true;
             }
 
@@ -222,7 +223,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 LevelBot.BehaviorFlags &= ~BehaviorFlags.Pull;
 
                 _combatContext = new BattlefieldContext(ItemId_BlindingRageTrap, GameObjectId_BlindingRageTrap);
-                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while behavior in progress");
+                this.UpdateGoalText(GetQuestId(), "Looting and Harvesting are disabled while behavior in progress");
             }
         }
 
@@ -342,7 +343,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                     }
                 }
 
-                if (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete))
+                if (!UtilIsProgressRequirementsMet(GetQuestId(), QuestRequirementInLog, QuestRequirementComplete))
                 {
                     BehaviorDone("Finished");
                     return true;

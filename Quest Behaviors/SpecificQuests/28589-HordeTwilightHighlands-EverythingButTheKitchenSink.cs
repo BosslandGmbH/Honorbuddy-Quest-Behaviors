@@ -55,7 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.EverythingButTheKitchenSink
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId = 28589;
+                VariantQuestIds = new HashSet<int> { 28589};
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
