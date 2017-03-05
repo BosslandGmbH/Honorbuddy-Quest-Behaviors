@@ -196,7 +196,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             IsAttributeProblem |= s_behaviorDatabase.CandyBuckets.IsAttributeProblem;
 
-            var questId = GetQuestOrVariantId();
+            var questId = GetQuestId();
             CandyBucketInfo = s_behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == questId);
             if (CandyBucketInfo == null)
             {
@@ -224,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors
             if (Me.MapId != CandyBucketInfo.MapId)
             {
                 var message =
-                    $"You are on the wrong continent for Candy Bucket providing QuestId({GetQuestOrVariantId()})." +
+                    $"You are on the wrong continent for Candy Bucket providing QuestId({GetQuestId()})." +
                     $"  Please move the toon to MapId({CandyBucketInfo.MapId}) and try again.";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
@@ -235,7 +235,7 @@ namespace Honorbuddy.Quest_Behaviors
             if ((CandyBucketInfo.FactionGroup != Me.FactionGroup) && (CandyBucketInfo.FactionGroup != WoWFactionGroup.Neutral))
             {
                 var message =
-                    $"QuestId({GetQuestOrVariantId()}) is for faction group {CandyBucketInfo.FactionGroup}, your FactionGroup is {Me.FactionGroup}.";
+                    $"QuestId({GetQuestId()}) is for faction group {CandyBucketInfo.FactionGroup}, your FactionGroup is {Me.FactionGroup}.";
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
@@ -290,7 +290,7 @@ namespace Honorbuddy.Quest_Behaviors
                 return false;
 
             var isMounted = Me.Mounted;
-            var isQuestComplete = Me.IsQuestComplete(GetQuestOrVariantId());
+            var isQuestComplete = Me.IsQuestComplete(GetQuestId());
 
             // If we do the quest, we'll must do the post-quest cleanup...
             if (!isQuestComplete)

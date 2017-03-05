@@ -306,7 +306,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         public override void OnStart()
         {
-            var questId = GetQuestOrVariantId();
+            var questId = GetQuestId();
             if (RidingPath.Waypoints.Count <= 0)
             {
                 QBCLog.Fatal("<RidingPath> sub-element is not defined, or has no waypoints.");
@@ -340,7 +340,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             // to zero, so the 'quest complete' logic works as expected (I.e., we're not doing the behavior
             // in a context of a quest).
             if ((questId == QuestId_BrewForBrewfest_Alliance) | (questId == QuestId_BrewForBrewfest_Horde))
-                QuestId = 0;
+                VariantQuestIds = new List<int>();
 
             // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
@@ -370,7 +370,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
         private async Task<bool> MainCoroutine()
         {
-            var questId = GetQuestOrVariantId();
+            var questId = GetQuestId();
             var isQuestComplete = Me.IsQuestComplete(questId);
 
             // If quest is complete, we're done...
@@ -387,7 +387,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             {
                 if (_ramReacquireStrategy == null)
                 {
-                    BehaviorDone(string.Format("Terminating: No ram re-acquire for Quest({0}) available.", GetQuestOrVariantId()));
+                    BehaviorDone(string.Format("Terminating: No ram re-acquire for Quest({0}) available.", GetQuestId()));
                     return false;
                 }
 

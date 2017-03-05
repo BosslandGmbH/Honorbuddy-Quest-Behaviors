@@ -68,7 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             try
             {
                 // Make certain quest is one of the ones we know how to do...
-                var questId = GetQuestOrVariantId();
+                var questId = GetQuestId();
                 if (questId == QuestId_BearsUpThere )
                     _mobId_bearTargets = MobId_Bear;
                 else if (questId == QuestId_ThoseBearsUpThere)
@@ -357,7 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
         public bool IsClimbingTheTree { get { return Me.HasAura(AURA_CLIMBING_TREE) || Me.HasAura(AURA_CLIMBING_TREE_DAILY); } }
 
-        public bool DoWeHaveQuest => GetQuestOrVariantInLog() != null;
+        public bool DoWeHaveQuest => GetQuestInLog() != null;
 
         #region Overrides of CustomForcedBehavior
 
@@ -380,7 +380,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
             // is quest abandoned or complete?
             //  ..  move down until we auto-exit vehicle
-            if (!DoWeHaveQuest || Me.IsQuestComplete(GetQuestOrVariantId()))
+            if (!DoWeHaveQuest || Me.IsQuestComplete(GetQuestId()))
             {
                 await ClimbDown();
                 return true;
@@ -501,7 +501,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                 }
                 else
                 {
-                    this.UpdateGoalText(GetQuestOrVariantId());
+                    this.UpdateGoalText(GetQuestId());
                 }
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called

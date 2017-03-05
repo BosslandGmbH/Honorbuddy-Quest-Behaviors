@@ -16,7 +16,6 @@
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
 //      VariantQuestIds [REQUIRED if EscortCompleteWhen=QuestComplete; Default:empty]:
 //          [QuestId and VariantQuestIds cannot be provided at the same time]
-
 //          A comma separated list of quest Ids that are variants of QuestId.
 //          The variants have the same objectives but only have a different quest ID depending on race, class, or faction.
 //      QuestCompleteRequirement [Default:NotComplete]:
@@ -281,9 +280,20 @@ namespace Honorbuddy.QuestBehaviorCore
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                VariantQuestIds = GetAttributeAsArray<int>("VariantQuestIds", false, ConstrainAs.QuestId(this), null, null) ?? new int[0];
+                // NB: quest ID is stored in a field which will be used for coherency checks.
+                var questId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                var variantQuestIds =
+                    new HashSet<int>(
+                        GetAttributeAsArray("VariantQuestIds", false, ConstrainAs.QuestId(this), null, null) ??
+                        new int[0]);
 
+                if (questId != 0)
+                {
+                    if (variantQuestIds.Any())
+                        _providedQuestIdAndQuestVariantIds = true;
+                    variantQuestIds.Add(questId);
+                }
+                VariantQuestIds = variantQuestIds;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 0;
@@ -350,8 +360,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         public double NonCompeteDistance { get; protected set; }
-        public int QuestId { get; protected set; }
-        public int[] VariantQuestIds { get; protected set; }
+        private readonly bool _providedQuestIdAndQuestVariantIds;
+        public IReadOnlyCollection<int> VariantQuestIds { get; protected set; }
         public int QuestObjectiveIndex { get; protected set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
         public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
@@ -432,7 +442,8 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (TerminationChecksQuestProgress)
             {
-                var questId = GetQuestOrVariantId();
+
+                var questId = GetQuestId();
                 if (Me.IsQuestObjectiveComplete(questId, QuestObjectiveIndex))
                     return true;
 
@@ -531,6 +542,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Concrete class overrides
+
         // Most of the time, we want a ConfigMemento to be created...
         // However, behaviors occasionally do not want this to happen (i.e., UserSettings).
         // So, we allow concrete behaviors to override this factory.
@@ -539,6 +551,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return new ConfigMemento();
         }
+
         #endregion
 
 
@@ -555,28 +568,12 @@ namespace Honorbuddy.QuestBehaviorCore
         protected bool OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
         {
             // Semantic coherency / covariant dependency checks...
-            UsageCheck_SemanticCoherency(Element,
-                ((QuestObjectiveIndex > 0) && (QuestId <= 0)),
-                context => string.Format("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided",
-                                        QuestObjectiveIndex));
+            UsageCheck_SemanticCoherency(Element, QuestObjectiveIndex > 0 && !VariantQuestIds.Any(),
+                context => $"QuestObjectiveIndex of '{QuestObjectiveIndex}' specified, but no corresponding QuestId provided");
 
             UsageCheck_SemanticCoherency(Element,
-                QuestId > 0 && VariantQuestIds.Any(),
+                _providedQuestIdAndQuestVariantIds,
                 context => "Cannot provide both a QuestId and VariantQuestIds at same time.");
-
-            UsageCheck_SemanticCoherency(Element,
-                VariantQuestIds.Length == 1,
-                context => "VariantQuestIds must provide at least 2 quest IDs.");
-
-            if (VariantQuestIds.Any())
-            {
-                var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
-                UsageCheck_SemanticCoherency(Element,
-                    VariantQuestIds.Count(id => Me.QuestLog.ContainsQuest((uint)id) || completedQuests.Contains((uint)id)) > 1,
-                    context => $"Multiple quests provided by VariantQuestIds: ({string.Join(", ", VariantQuestIds)}) " +
-                               "were found in player's quest log or have been turned in. " +
-                               "This indicates that some/all of the quests specified by VariantQuestIds are not variants.");
-            }
 
             EvaluateUsage_SemanticCoherency(Element);
 
@@ -588,7 +585,7 @@ namespace Honorbuddy.QuestBehaviorCore
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            var questId = GetQuestOrVariantId();
+            var questId = GetQuestId();
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             // NB: Since the IsDone property may skip checking the 'progress conditions', we need to explicltly
@@ -717,32 +714,32 @@ namespace Honorbuddy.QuestBehaviorCore
         //                      RangeMax, rangeEpsilon, RangeMin));
         //}
 
-        protected PlayerQuest GetQuestOrVariantInLog()
+        protected PlayerQuest GetQuestInLog()
         {
-            if (VariantQuestIds.Any())
-                return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id)).FirstOrDefault(q => q != null);
-
-            return StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id))
+                    .FirstOrDefault(q => q != null);
         }
 
         /// <summary>
         /// Searches player's quest log and list of completed quests for a quest specified by
-        /// <see cref="QuestId"/> and <see cref="VariantQuestIds"/>,
-        /// and returns the id if found; otherwise returns <see cref="QuestId"/>
+        /// QuestId and <see cref="VariantQuestIds"/>,
+        /// and returns the id if found; otherwise returns first quest provided by QuestId/VariantQuestIds
         /// </summary>
         /// <returns></returns>
-        protected int GetQuestOrVariantId()
+        protected int GetQuestId()
         {
-            var questInLog = GetQuestOrVariantInLog();
+            var questInLog = GetQuestInLog();
             if (questInLog != null)
                 return (int)questInLog.Id;
 
-            if (!VariantQuestIds.Any())
-                return QuestId;
-
             var completedQuests = new HashSet<uint>(StyxWoW.Me.QuestLog.GetCompletedQuests());
-            return VariantQuestIds
+            var completedQuestId  = VariantQuestIds
                     .FirstOrDefault(id => completedQuests.Contains((uint)id));
+
+            if (completedQuestId != 0)
+                return completedQuestId;
+
+            return VariantQuestIds.Any() ? VariantQuestIds.Min() : 0;
         }
 
         #region TargetFilters
