@@ -334,7 +334,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 RoughDestination = PotentialDestinations.CurrentWaypoint();
 
                 var actionDescription = $"Flying to '{RoughDestination.Name}' ({RoughDestination.Location})";
-                this.UpdateGoalText(GetQuestOrVariantId(), actionDescription);
+                this.UpdateGoalText(GetQuestId(), actionDescription);
                 TreeRoot.StatusText = actionDescription;
             }
         }

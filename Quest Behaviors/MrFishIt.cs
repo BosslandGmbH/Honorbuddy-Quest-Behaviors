@@ -303,13 +303,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // Make sure we don't get logged out
                 GlobalSettings.Instance.LogoutForInactivity = false;
 
-                PlayerQuest quest = GetQuestOrVariantInLog();
+                PlayerQuest quest = GetQuestInLog();
                 if (quest == null)
-                    this.UpdateGoalText(QuestId, "Fishing Item [" + CollectItemId + "]");
+                    this.UpdateGoalText(GetQuestId(), "Fishing Item [" + CollectItemId + "]");
                 else
                     this.UpdateGoalText((int)quest.Id, "Fishing Item for [" + quest.Name + "]");
 
-                QBCLog.DeveloperInfo("Fishing Item (for QuestId {0}): {1}({2}) x{3}", quest?.Id ?? (uint)QuestId, Utility.GetItemNameFromId(CollectItemId), CollectItemId, CollectItemCount.Value);
+                QBCLog.DeveloperInfo("Fishing Item (for QuestId {0}): {1}({2}) x{3}", quest?.Id ?? (uint)GetQuestId(), Utility.GetItemNameFromId(CollectItemId), CollectItemId, CollectItemCount.Value);
 
                 if (UseFishingGear)
                 {

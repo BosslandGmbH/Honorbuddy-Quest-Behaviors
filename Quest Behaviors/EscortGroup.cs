@@ -318,20 +318,20 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                     IsAttributeProblem = true;
                 }
 
-                if ((EscortCompleteWhen == EscortCompleteWhenType.QuestComplete) && (QuestId == 0))
+                if ((EscortCompleteWhen == EscortCompleteWhenType.QuestComplete) && (!VariantQuestIds.Any()))
                 {
                     QBCLog.Error("With a EscortCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
                     IsAttributeProblem = true;
                 }
 
-                if ((QuestId == 0) && (EscortCompleteWhen != EscortCompleteWhenType.DestinationReached))
+                if ((!VariantQuestIds.Any()) && (EscortCompleteWhen != EscortCompleteWhenType.DestinationReached))
                 {
                     QBCLog.Error("When no QuestId is specified, EscortCompleteWhen must be DestinationReached");
                     IsAttributeProblem = true;
                 }
 
                 if ((EscortCompleteWhen == EscortCompleteWhenType.QuestObjectiveComplete)
-                    && ((QuestId == 0) || (QuestObjectiveIndex == 0)))
+                    && ((!VariantQuestIds.Any()) || (QuestObjectiveIndex == 0)))
                 {
                     QBCLog.Error("With an EscortCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
                     IsAttributeProblem = true;
@@ -495,7 +495,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 BehaviorState = BehaviorStateType.InitialState;
 
-                this.UpdateGoalText(GetQuestOrVariantId(), "Looting and Harvesting are disabled while Escort in progress");
+                this.UpdateGoalText(GetQuestId(), "Looting and Harvesting are disabled while Escort in progress");
             }
         }
 
@@ -1022,18 +1022,18 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
                 case EscortCompleteWhenType.QuestComplete:
                     {
-                        var quest = GetQuestOrVariantInLog();
+                        var quest = GetQuestInLog();
                         return (quest == null) || quest.IsCompleted;
                     }
 
                 case EscortCompleteWhenType.QuestCompleteOrFails:
                     {
-                        var quest = GetQuestOrVariantInLog();
+                        var quest = GetQuestInLog();
                         return (quest == null) || quest.IsCompleted || IsEscortFailed(escortedUnits);
                     }
 
                 case EscortCompleteWhenType.QuestObjectiveComplete:
-                    return Me.IsQuestObjectiveComplete(GetQuestOrVariantId(), QuestObjectiveIndex);
+                    return Me.IsQuestObjectiveComplete(GetQuestId(), QuestObjectiveIndex);
             }
 
             QBCLog.MaintenanceError("EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
@@ -1047,9 +1047,9 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         {
             bool isFailed = !IsEscortedGroupViable(escortedUnits);
 
-            if (QuestId > 0)
+            if (VariantQuestIds.Any())
             {
-                PlayerQuest quest = GetQuestOrVariantInLog();
+                PlayerQuest quest = GetQuestInLog();
                 isFailed |= quest.IsFailed;
             }
 

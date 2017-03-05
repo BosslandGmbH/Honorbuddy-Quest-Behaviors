@@ -250,7 +250,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                 var questObjectiveIndex = questObjectiveIndexDelegate(context);
                 var mobId = mobIdDelegate(context);
 
-                if (Me.IsQuestObjectiveComplete(GetQuestOrVariantId(), questObjectiveIndex))
+                if (Me.IsQuestObjectiveComplete(GetQuestId(), questObjectiveIndex))
                 { return false; }
 
                 SelectedTarget = ObjectManager.ObjectList.FirstOrDefault(o => o.Entry == mobId);
