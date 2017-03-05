@@ -916,7 +916,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     CloseOpenFrames();
                     Me.ClearTarget();
 
-                    this.UpdateGoalText(QuestId, GetGoalText());
+                    this.UpdateGoalText(GetQuestId(), GetGoalText());
                     InteractAttemptCount = 0;
                     _watchdogTimerToReachDestination = null;
                 }

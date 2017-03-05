@@ -73,7 +73,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         {
             try
             {
-                QuestId = 27990;
+                VariantQuestIds = new HashSet<int> {27990};
                 TerminationChecksQuestProgress = false;
 
                 MobId_Objective1_DecrepitWatcher = 47385;   // http://wowhead.com/npc=47385
@@ -244,7 +244,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         private Composite StateBehaviorPS_MountingVehicle()
         {
             return new PrioritySelector(
-                new Decorator(context => Me.IsQuestComplete(QuestId),
+                new Decorator(context => Me.IsQuestComplete(GetQuestId()),
                     new Action(context => { BehaviorDone(); })),
 
                 // If we're in the vehicle, wait for the ride out to hunting grounds to complete...
@@ -362,7 +362,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                     })),
 
                 // If quest is complete, then head back...
-                new Decorator(context => Me.IsQuestObjectiveComplete(QuestId, 1),
+                new Decorator(context => Me.IsQuestObjectiveComplete(GetQuestId(), 1),
                     new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
 
                 new CompositeThrottle(Throttle.UserUpdate,
@@ -416,7 +416,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                             "Commander Schnottz",
                             MovementBy))),
 
-                new Decorator(context => Me.IsQuestComplete(QuestId),
+                new Decorator(context => Me.IsQuestComplete(GetQuestId()),
                     new Action(context => BehaviorDone("quest complete")))
                 );
         }
