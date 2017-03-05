@@ -542,6 +542,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Concrete class overrides
+
         // Most of the time, we want a ConfigMemento to be created...
         // However, behaviors occasionally do not want this to happen (i.e., UserSettings).
         // So, we allow concrete behaviors to override this factory.
@@ -550,6 +551,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return new ConfigMemento();
         }
+
         #endregion
 
 
