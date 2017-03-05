@@ -360,7 +360,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     && (!ItemUseAlwaysSucceeds)
                     && ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
                         || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)
-                        || (QuestId <= 0))),
+                        || (!VariantQuestIds.Any()))),
                 context => string.Format("For a UseItemStrategy of {0}, ItemAppliesAuraId must be specified",
                                         UseItemStrategy));
         }
@@ -595,7 +595,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 if (ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId))
                                 {
                                     // Count our success if no associated quest...
-                                    if (QuestId == 0)
+                                    if (!VariantQuestIds.Any())
                                     { ++Counter; }
 
                                     // If we can only use the item once per target, blacklist this target from subsequent selection...

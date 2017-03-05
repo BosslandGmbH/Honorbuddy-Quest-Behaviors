@@ -53,7 +53,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
 
             try
             {
-                QuestId = 29663;
+                VariantQuestIds = new HashSet<int> { 29663 };
             }
 
             catch (Exception except)
@@ -151,7 +151,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         #region Helpers
         private Composite DoneYet()
         {
-            return new Decorator(context => Me.IsQuestComplete(QuestId),
+            return new Decorator(context => Me.IsQuestComplete(GetQuestId()),
                 new PrioritySelector(
                     // Get off pole...
                     new Decorator(context => Query.IsInVehicle(),

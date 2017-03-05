@@ -255,7 +255,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                     var questObjectiveIndex = questObjectiveIndexDelegate(context);
                     var mobId = mobIdDelegate(context);
 
-                    if (Me.IsQuestObjectiveComplete(QuestId, questObjectiveIndex))
+                    if (Me.IsQuestObjectiveComplete(GetQuestId(), questObjectiveIndex))
                     { return false; }
 
                     SelectedTarget =
