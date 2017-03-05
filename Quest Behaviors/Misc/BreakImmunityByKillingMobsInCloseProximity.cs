@@ -210,7 +210,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
                 return true;
             }
 
-            if (SelectedNpc.IsDead && SelectedNpc.TaggedByMe && GetQuestId() == 0)
+            if (SelectedNpc.IsDead && SelectedNpc.TaggedByMe && VariantQuestIds.Any())
             {
                 BehaviorDone();
                 return true;

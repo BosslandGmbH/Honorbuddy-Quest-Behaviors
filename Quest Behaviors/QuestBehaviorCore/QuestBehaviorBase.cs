@@ -281,13 +281,18 @@ namespace Honorbuddy.QuestBehaviorCore
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 // NB: quest ID is stored in a field which will be used for coherency checks.
-                _questId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                var questId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 var variantQuestIds =
                     new HashSet<int>(
                         GetAttributeAsArray("VariantQuestIds", false, ConstrainAs.QuestId(this), null, null) ??
                         new int[0]);
-                if (_questId != 0)
-                    variantQuestIds.Add(_questId);
+
+                if (questId != 0)
+                {
+                    if (variantQuestIds.Any())
+                        _providedQuestIdAndQuestVariantIds = true;
+                    variantQuestIds.Add(questId);
+                }
                 VariantQuestIds = variantQuestIds;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -356,7 +361,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public double NonCompeteDistance { get; protected set; }
 
-        private int _questId;
+        private readonly bool _providedQuestIdAndQuestVariantIds;
         public IReadOnlyCollection<int> VariantQuestIds { get; protected set; }
         public int QuestObjectiveIndex { get; protected set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
@@ -565,7 +570,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 context => $"QuestObjectiveIndex of '{QuestObjectiveIndex}' specified, but no corresponding QuestId provided");
 
             UsageCheck_SemanticCoherency(Element,
-                _questId > 0 && VariantQuestIds.Any(),
+                _providedQuestIdAndQuestVariantIds,
                 context => "Cannot provide both a QuestId and VariantQuestIds at same time.");
 
             EvaluateUsage_SemanticCoherency(Element);
@@ -709,9 +714,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         protected PlayerQuest GetQuestInLog()
         {
-            return !VariantQuestIds.Any()
-                ? null
-                : VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id))
+            return VariantQuestIds.Select(id => StyxWoW.Me.QuestLog.GetQuestById((uint)id))
                     .FirstOrDefault(q => q != null);
         }
 
@@ -734,7 +737,7 @@ namespace Honorbuddy.QuestBehaviorCore
             if (completedQuestId != 0)
                 return completedQuestId;
 
-            return VariantQuestIds.FirstOrDefault();
+            return VariantQuestIds.Any() ? VariantQuestIds.Min() : 0;
         }
 
         #region TargetFilters

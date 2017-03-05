@@ -66,8 +66,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
 
             try
             {
-                var questId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 29727;
-                VariantQuestIds = new HashSet<int> { questId };
+                VariantQuestIds = VariantQuestIds.Any() ? VariantQuestIds : new HashSet<int> {29727};
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
             }
