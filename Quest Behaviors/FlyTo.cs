@@ -333,8 +333,8 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 PotentialDestinations.WaypointVisitStrategy = HuntingGroundsType.WaypointVisitStrategyType.PickOneAtRandom;
                 RoughDestination = PotentialDestinations.CurrentWaypoint();
 
-                var actionDescription = string.Format("Flying to '{0}' ({1})", RoughDestination.Name, RoughDestination.Location);
-                this.UpdateGoalText(QuestId, actionDescription);
+                var actionDescription = $"Flying to '{RoughDestination.Name}' ({RoughDestination.Location})";
+                this.UpdateGoalText(GetQuestId(), actionDescription);
                 TreeRoot.StatusText = actionDescription;
             }
         }

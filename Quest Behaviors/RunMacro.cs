@@ -91,7 +91,7 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            this.UpdateGoalText(QuestId, GoalText);
+            this.UpdateGoalText(GetQuestId(), GoalText);
         }
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -131,7 +131,7 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 
             for (int counter = 1; counter <= NumOfTimes; ++counter)
             {
-                this.UpdateGoalText(QuestId, string.Format("Running macro {0} times", NumOfTimes));
+                this.UpdateGoalText(GetQuestId(), string.Format("Running macro {0} times", NumOfTimes));
                 TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
 
                 Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);
