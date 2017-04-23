@@ -103,6 +103,7 @@ using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
 
 using Action = Styx.TreeSharp.Action;
+using Styx.CommonBot.Bars;
 #endregion
 
 
@@ -240,7 +241,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         public string[] SupportedLocales { get; private set; }
 
         // Private Properties & data...
-        private const int BonusActionButtonOffset = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
         private KeyValuePair<string, int> _buttonEmpty = new KeyValuePair<string, int>(string.Empty, 0);
         private WoWObject CurrentTarget { get { return (_behavior_HuntingGround.CurrentTarget); } }
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
@@ -347,10 +347,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
         private void PressButton(int buttonNumber)
         {
-            Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ",
-                         buttonNumber + BonusActionButtonOffset);
+            var button = ActionBar.Active.Buttons.FirstOrDefault(b => b.Index == buttonNumber);
+            if (button == null)
+                throw new InvalidOperationException($"Button {buttonNumber} is not available on active actionbar page.");
+            button.Use();
         }
-
 
         private void ProcessMessage(string message)
         {
