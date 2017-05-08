@@ -49,7 +49,6 @@ using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
-using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
