@@ -154,6 +154,9 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         private readonly FishingSettings _settings;
         private readonly FishingBuddyProfile _fishingProfile;
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         public MrFishIt(Dictionary<string, string> args)
             : base(args)
         {

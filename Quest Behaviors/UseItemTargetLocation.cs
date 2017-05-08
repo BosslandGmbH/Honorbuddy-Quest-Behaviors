@@ -236,7 +236,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = string.Format("Using Quest Item: {0} Out of {1} Times",
                                     Counter, NumOfTimes)),
-                                new DecoratorContinue(ret => Me.Mounted && Me.IsFlying, new ActionRunCoroutine(a => CommonCoroutines.LandAndDismount())),
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                 new Action(ret => Me.SetFacing(ClickToLocation)),
                                 new SleepForLagDuration(),
@@ -276,7 +275,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
                                             UseObject.SafeName, Counter, NumOfTimes)),
-                                        new DecoratorContinue(ret => Me.Mounted && Me.IsFlying, new ActionRunCoroutine(a => CommonCoroutines.LandAndDismount())),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
                                         new SleepForLagDuration(),
@@ -314,7 +312,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
                                             UseObject.SafeName, Counter, NumOfTimes)),
-                                        new DecoratorContinue(ret => Me.Mounted && Me.IsFlying, new ActionRunCoroutine(a => CommonCoroutines.LandAndDismount())),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
                                         new SleepForLagDuration(),
