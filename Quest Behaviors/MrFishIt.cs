@@ -165,18 +165,64 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             {
                 ParseWaypoints();
 
-                var fishingPoint = GetAttributeAsNullable<Vector3>("", WayPoints.Count == 0, ConstrainAs.Vector3NonEmpty, null) ?? Vector3.Zero;
+                var fishingPoint =
+                    GetAttributeAsNullable<Vector3>("", WayPoints.Count == 0, ConstrainAs.Vector3NonEmpty, null) ??
+                    Vector3.Zero;
                 if (fishingPoint != Vector3.Zero)
                     WayPoints.Add(fishingPoint);
 
                 CollectItemId = GetAttributeAsNullable<int>("CollectItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                var collectItemCountExpression = GetAttributeAs("CollectItemCount", false, ConstrainAs.StringNonEmpty, null);
-                CollectItemCountCompiledExpression = Utility.ProduceParameterlessCompiledExpression<int>(collectItemCountExpression);
-                CollectItemCount = Utility.ProduceCachedValueFromCompiledExpression(CollectItemCountCompiledExpression, 1);
+                var collectItemCountExpression = GetAttributeAs("CollectItemCount", false, ConstrainAs.StringNonEmpty,
+                    null);
+                CollectItemCountCompiledExpression =
+                    Utility.ProduceParameterlessCompiledExpression<int>(collectItemCountExpression);
+                CollectItemCount = Utility.ProduceCachedValueFromCompiledExpression(CollectItemCountCompiledExpression,
+                    1);
 
                 bool circlePathing = GetAttributeAsNullable<bool>("CirclePathing", false, null, null) ?? true;
-                PoolIds = GetAttributeAsArray<uint>("PoolIds", false, null, new[] { "PoolId" }, null);
-                _fishingProfile = new FishingBuddyProfile(WayPoints, circlePathing ? PathingType.Circle : PathingType.Bounce, PoolIds.ToList());
+                PoolIds = GetAttributeAsArray<uint>("PoolIds", false, null, new[] {"PoolId"}, null);
+                _fishingProfile = new FishingBuddyProfile(WayPoints,
+                    circlePathing ? PathingType.Circle : PathingType.Bounce, PoolIds.ToList());
+
+
+                _fishingLogic = new FishingLogic(
+                    // Wowhead Id of the mainhand weapon to switch to when in combat
+                    mainHandItemId: GetAttributeAsNullable<uint>("MainHand", false, null, null) ?? 0,
+                    // Wowhead Id of the offhand weapon to switch to when in combat
+                    offHandItemId: GetAttributeAsNullable<uint>("OffHand", false, null, null) ?? 0,
+                    // Wowhead Id of the hat to switch to when not fishing
+                    headItemId: GetAttributeAsNullable<uint>("Hat", false, null, null) ?? 0,
+                    // Set this to true if you want to fish from pools, otherwise set to false.
+                    poolFishing: _fishingProfile.WayPoints.Count > 1,
+                    // GetAttributeAsNullable<bool>("Poolfishing", false, null, null) ?? false; 
+                    // If set to true bot will attempt to loot any dead lootable NPCs
+                    lootNPCs: GetAttributeAsNullable<bool>("LootNPCs", false, null, null) ?? false,
+                    // Set to true to enable flying, false to use ground based navigation
+                    useFlying: GetAttributeAsNullable<bool>("Fly", false, null, null) ?? true,
+                    // If set to true bot will use water walking, either class abilities or pots
+                    useWaterWalking: GetAttributeAsNullable<bool>("UseWaterWalking", false, null, null) ?? true,
+                    // If set to true, bot will try to avoid landing in lava. Some pools by floating objects such as ice floes will get blacklisted if this is set to true
+                    avoidLava: GetAttributeAsNullable<bool>("AvoidLava", false, null, null) ?? false,
+                    // If set to true bot will 'ninja' nodes from other players.
+                    ninjaNodes: GetAttributeAsNullable<bool>("NinjaNodes", false, null, null) ?? false,
+                    // If set to true bot will automatically apply fishing baits6s
+                    useBait: GetAttributeAsNullable<bool>("UseBait", false, null, null) ?? true,
+                    // Which bait to prefer (item id). If not found, other baits will be used.
+                    useBaitPreference:
+                    GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] {"BaitId"}) ?? 0,
+                    // If set to true bot will automatically fillet fish
+                    filletFish: GetAttributeAsNullable<bool>("FilletFish", false, null, null) ?? false,
+                    // The maximum time in minutes to spend at a pool before it gets blacklisted
+                    maxTimeAtPool: GetAttributeAsNullable<int>("MaxTimeAtPool", false, null, null) ?? 5,
+                    // The maximum number of failed casts at a pool before moving to a new location at pool
+                    maxFailedCasts: GetAttributeAsNullable<int>("MaxFailedCasts", false, null, null) ?? 15,
+                    // When bot is within this distance from current hotspot then it cycles to next hotspot. flymode only 
+                    pathPrecision: GetAttributeAsNullable<float>("PathPrecision", false, null, null) ?? 15f,
+                    // Number of tracelines to do in a 360 deg area. the higher the more likely to find a landing spot.recomended to set at a multiple of 20
+                    traceStep: GetAttributeAsNullable<int>("TraceStep", false, null, null) ?? 40,
+                    // Each time bot fails to find a landing spot it adds this number to the range and tries again until it hits MaxPoolRange. Can use decimals.
+                    poolRangeStep: GetAttributeAsNullable<float>("PoolRangeStep", false, null, null) ?? .5f
+                );
             }
 
             catch (Exception except)
@@ -189,43 +235,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 QBCLog.Exception(except);
                 IsAttributeProblem = true;
             }
-
-            _fishingLogic = new FishingLogic(
-                // Wowhead Id of the mainhand weapon to switch to when in combat
-                mainHandItemId: GetAttributeAsNullable<uint>("MainHand", false, null, null) ?? 0,
-                // Wowhead Id of the offhand weapon to switch to when in combat
-                offHandItemId: GetAttributeAsNullable<uint>("OffHand", false, null, null) ?? 0,
-                // Wowhead Id of the hat to switch to when not fishing
-                headItemId: GetAttributeAsNullable<uint>("Hat", false, null, null) ?? 0,
-                // Set this to true if you want to fish from pools, otherwise set to false.
-                poolFishing: _fishingProfile.WayPoints.Count > 1, // GetAttributeAsNullable<bool>("Poolfishing", false, null, null) ?? false; 
-                // If set to true bot will attempt to loot any dead lootable NPCs
-                lootNPCs: GetAttributeAsNullable<bool>("LootNPCs", false, null, null) ?? false,
-                // Set to true to enable flying, false to use ground based navigation
-                useFlying: GetAttributeAsNullable<bool>("Fly", false, null, null) ?? true,
-                // If set to true bot will use water walking, either class abilities or pots
-                useWaterWalking: GetAttributeAsNullable<bool>("UseWaterWalking", false, null, null) ?? true,
-                // If set to true, bot will try to avoid landing in lava. Some pools by floating objects such as ice floes will get blacklisted if this is set to true
-                avoidLava: GetAttributeAsNullable<bool>("AvoidLava", false, null, null) ?? false,
-                // If set to true bot will 'ninja' nodes from other players.
-                ninjaNodes: GetAttributeAsNullable<bool>("NinjaNodes", false, null, null) ?? false,
-                // If set to true bot will automatically apply fishing baits6s
-                useBait: GetAttributeAsNullable<bool>("UseBait", false, null, null) ?? true,
-                // Which bait to prefer (item id). If not found, other baits will be used.
-                useBaitPreference: GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] { "BaitId" }) ?? 0,
-                // If set to true bot will automatically fillet fish
-                filletFish: GetAttributeAsNullable<bool>("FilletFish", false, null, null) ?? false,
-                // The maximum time in minutes to spend at a pool before it gets blacklisted
-                maxTimeAtPool: GetAttributeAsNullable<int>("MaxTimeAtPool", false, null, null) ?? 5,
-                // The maximum number of failed casts at a pool before moving to a new location at pool
-                maxFailedCasts: GetAttributeAsNullable<int>("MaxFailedCasts", false, null, null) ?? 15,
-                // When bot is within this distance from current hotspot then it cycles to next hotspot. flymode only 
-                pathPrecision: GetAttributeAsNullable<float>("PathPrecision", false, null, null) ?? 15f,
-                // Number of tracelines to do in a 360 deg area. the higher the more likely to find a landing spot.recomended to set at a multiple of 20
-                traceStep: GetAttributeAsNullable<int>("TraceStep", false, null, null) ?? 40,
-                // Each time bot fails to find a landing spot it adds this number to the range and tries again until it hits MaxPoolRange. Can use decimals.
-                poolRangeStep: GetAttributeAsNullable<float>("PoolRangeStep", false, null, null) ?? .5f
-                );
         }
 
         private List<Vector3> WayPoints { get; set; }
