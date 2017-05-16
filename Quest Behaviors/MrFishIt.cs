@@ -151,7 +151,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
     [CustomBehaviorFileName(@"MrFishIt")]
     internal class MrFishIt : QuestBehaviorBase
     {
-        private readonly FishingSettings _settings;
         private readonly FishingBuddyProfile _fishingProfile;
 
         // DON'T EDIT THIS--it is auto-populated by Git
@@ -178,51 +177,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 bool circlePathing = GetAttributeAsNullable<bool>("CirclePathing", false, null, null) ?? true;
                 PoolIds = GetAttributeAsArray<uint>("PoolIds", false, null, new[] { "PoolId" }, null);
                 _fishingProfile = new FishingBuddyProfile(WayPoints, circlePathing ? PathingType.Circle : PathingType.Bounce, PoolIds.ToList());
-
-                #region FishingBuddy Settings
-
-                _settings = new FishingSettings
-                {
-                    // If set to true bot will attempt to loot any dead lootable NPCs
-                    LootNPCs = GetAttributeAsNullable<bool>("LootNPCs", false, null, null) ?? false,
-                    // Wowhead Id of the hat to switch to when not fishing
-                    Hat = GetAttributeAsNullable<uint>("Hat", false, null, null) ?? 0,
-                    // Wowhead Id of the mainhand weapon to switch to when in combat
-                    MainHand = GetAttributeAsNullable<uint>("MainHand", false, null, null) ?? 0,
-                    // Wowhead Id of the offhand weapon to switch to when in combat
-                    OffHand = GetAttributeAsNullable<uint>("OffHand", false, null, null) ?? 0,
-
-                    // Set this to true if you want to fish from pools, otherwise set to false.
-                    Poolfishing = _fishingProfile.WayPoints.Count > 1, // GetAttributeAsNullable<bool>("Poolfishing", false, null, null) ?? false;
-
-                    // Set to true to enable flying, false to use ground based navigation
-                    Fly = GetAttributeAsNullable<bool>("Fly", false, null, null) ?? true,
-                    // If set to true bot will use water walking, either class abilities or pots
-                    UseWaterWalking = GetAttributeAsNullable<bool>("UseWaterWalking", false, null, null) ?? true,
-                    // If set to true, bot will try to avoid landing in lava. Some pools by floating objects such as ice floes will get blacklisted if this is set to true
-                    AvoidLava = GetAttributeAsNullable<bool>("AvoidLava", false, null, null) ?? false,
-                    // If set to true bot will 'ninja' nodes from other players.
-                    NinjaNodes = GetAttributeAsNullable<bool>("NinjaNodes", false, null, null) ?? false,
-                    // If set to true bot will automatically apply fishing baits6s
-                    UseBait = GetAttributeAsNullable<bool>("UseBait", false, null, null) ?? true,
-                    // Which bait to prefer (item id). If not found, other baits will be used.
-                    UseBaitPreference = GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] { "BaitId" }) ?? 0,
-                    // If set to true bot will automatically fillet fish
-                    FilletFish = GetAttributeAsNullable<bool>("FilletFish", false, null, null) ?? false,
-
-                    // The maximum time in minutes to spend at a pool before it gets blacklisted
-                    MaxTimeAtPool = GetAttributeAsNullable<int>("MaxTimeAtPool", false, null, null) ?? 5,
-                    // The maximum number of failed casts at a pool before moving to a new location at pool
-                    MaxFailedCasts = GetAttributeAsNullable<int>("MaxFailedCasts", false, null, null) ?? 15,
-                    // When bot is within this distance from current hotspot then it cycles to next hotspot. flymode only
-                    PathPrecision = GetAttributeAsNullable<float>("PathPrecision", false, null, null) ?? 15f,
-                    // Number of tracelines to do in a 360 deg area. the higher the more likely to find a landing spot.recomended to set at a multiple of 20
-                    TraceStep = GetAttributeAsNullable<int>("TraceStep", false, null, null) ?? 40,
-                    // Each time bot fails to find a landing spot it adds this number to the range and tries again until it hits MaxPoolRange. Can use decimals.
-                    PoolRangeStep = GetAttributeAsNullable<float>("PoolRangeStep", false, null, null) ?? .5f
-                };
-
-                #endregion
             }
 
             catch (Exception except)
@@ -237,23 +191,40 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
 
             _fishingLogic = new FishingLogic(
-                mainHandItemId: _settings.MainHand, 
-                offHandItemId: _settings.OffHand, 
-                headItemId: _settings.Hat, 
-                poolFishing: _settings.Poolfishing, 
-                lootNPCs: _settings.LootNPCs, 
-                useFlying: _settings.Fly, 
-                useWaterWalking: _settings.UseWaterWalking, 
-                avoidLava: _settings.AvoidLava, 
-                ninjaNodes: _settings.NinjaNodes,
-                useBait: _settings.UseBait, 
-                useBaitPreference: _settings.UseBaitPreference, 
-                filletFish: _settings.FilletFish, 
-                maxTimeAtPool: _settings.MaxTimeAtPool,
-                maxFailedCasts: _settings.MaxFailedCasts,
-                pathPrecision: _settings.PathPrecision, 
-                traceStep: _settings.TraceStep, 
-                poolRangeStep: _settings.PoolRangeStep
+                // Wowhead Id of the mainhand weapon to switch to when in combat
+                mainHandItemId: GetAttributeAsNullable<uint>("MainHand", false, null, null) ?? 0,
+                // Wowhead Id of the offhand weapon to switch to when in combat
+                offHandItemId: GetAttributeAsNullable<uint>("OffHand", false, null, null) ?? 0,
+                // Wowhead Id of the hat to switch to when not fishing
+                headItemId: GetAttributeAsNullable<uint>("Hat", false, null, null) ?? 0,
+                // Set this to true if you want to fish from pools, otherwise set to false.
+                poolFishing: _fishingProfile.WayPoints.Count > 1, // GetAttributeAsNullable<bool>("Poolfishing", false, null, null) ?? false; 
+                // If set to true bot will attempt to loot any dead lootable NPCs
+                lootNPCs: GetAttributeAsNullable<bool>("LootNPCs", false, null, null) ?? false,
+                // Set to true to enable flying, false to use ground based navigation
+                useFlying: GetAttributeAsNullable<bool>("Fly", false, null, null) ?? true,
+                // If set to true bot will use water walking, either class abilities or pots
+                useWaterWalking: GetAttributeAsNullable<bool>("UseWaterWalking", false, null, null) ?? true,
+                // If set to true, bot will try to avoid landing in lava. Some pools by floating objects such as ice floes will get blacklisted if this is set to true
+                avoidLava: GetAttributeAsNullable<bool>("AvoidLava", false, null, null) ?? false,
+                // If set to true bot will 'ninja' nodes from other players.
+                ninjaNodes: GetAttributeAsNullable<bool>("NinjaNodes", false, null, null) ?? false,
+                // If set to true bot will automatically apply fishing baits6s
+                useBait: GetAttributeAsNullable<bool>("UseBait", false, null, null) ?? true,
+                // Which bait to prefer (item id). If not found, other baits will be used.
+                useBaitPreference: GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] { "BaitId" }) ?? 0,
+                // If set to true bot will automatically fillet fish
+                filletFish: GetAttributeAsNullable<bool>("FilletFish", false, null, null) ?? false,
+                // The maximum time in minutes to spend at a pool before it gets blacklisted
+                maxTimeAtPool: GetAttributeAsNullable<int>("MaxTimeAtPool", false, null, null) ?? 5,
+                // The maximum number of failed casts at a pool before moving to a new location at pool
+                maxFailedCasts: GetAttributeAsNullable<int>("MaxFailedCasts", false, null, null) ?? 15,
+                // When bot is within this distance from current hotspot then it cycles to next hotspot. flymode only 
+                pathPrecision: GetAttributeAsNullable<float>("PathPrecision", false, null, null) ?? 15f,
+                // Number of tracelines to do in a 360 deg area. the higher the more likely to find a landing spot.recomended to set at a multiple of 20
+                traceStep: GetAttributeAsNullable<int>("TraceStep", false, null, null) ?? 40,
+                // Each time bot fails to find a landing spot it adds this number to the range and tries again until it hits MaxPoolRange. Can use decimals.
+                poolRangeStep: GetAttributeAsNullable<float>("PoolRangeStep", false, null, null) ?? .5f
                 );
         }
 
@@ -357,35 +328,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         }
 
         #endregion
-
-        #region Nested type: FishingSettings
-
-        private class FishingSettings
-        {
-            public bool LootNPCs { get; set; }
-
-            public uint Hat { get; set; }
-            public uint MainHand { get; set; }
-            public uint OffHand { get; set; }
-
-            public bool Poolfishing { get; set; }
-            public bool Fly { get; set; }
-            public bool UseWaterWalking { get; set; }
-            public bool AvoidLava { get; set; }
-            public bool NinjaNodes { get; set; }
-            public bool UseBait { get; set; }
-            public uint UseBaitPreference { get; set; }
-            public bool FilletFish { get; set; }
-
-            public int MaxTimeAtPool { get; set; }
-            public int MaxFailedCasts { get; set; }
-            public float PathPrecision { get; set; }
-            public int TraceStep { get; set; }
-            public float PoolRangeStep { get; set; }
-        }
-
-        #endregion
-
     }
     public static class Vector3Extensions
     {
