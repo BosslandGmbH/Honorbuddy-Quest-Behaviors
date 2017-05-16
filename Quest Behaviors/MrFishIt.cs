@@ -193,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                     // Wowhead Id of the hat to switch to when not fishing
                     headItemId: GetAttributeAsNullable<uint>("Hat", false, null, null) ?? 0,
                     // Set this to true if you want to fish from pools, otherwise set to false.
-                    poolFishing: _fishingProfile.WayPoints.Count > 1,
+                    poolFishing: _fishingProfile.WayPoints.Count > 1 || (GetAttributeAsNullable<bool>("MoveToPool", false, null, null) ?? false),
                     // GetAttributeAsNullable<bool>("Poolfishing", false, null, null) ?? false; 
                     // If set to true bot will attempt to loot any dead lootable NPCs
                     lootNPCs: GetAttributeAsNullable<bool>("LootNPCs", false, null, null) ?? false,
