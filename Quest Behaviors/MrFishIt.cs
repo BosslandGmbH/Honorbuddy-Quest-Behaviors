@@ -208,8 +208,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                     // If set to true bot will automatically apply fishing baits6s
                     useBait: GetAttributeAsNullable<bool>("UseBait", false, null, null) ?? true,
                     // Which bait to prefer (item id). If not found, other baits will be used.
-                    useBaitPreference:
-                    GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] {"BaitId"}) ?? 0,
+                    useBaitPreference: GetAttributeAsNullable<uint>("UseBaitPreference", false, null, new[] {"BaitId"}) ?? 0,
                     // If set to true bot will automatically fillet fish
                     filletFish: GetAttributeAsNullable<bool>("FilletFish", false, null, null) ?? false,
                     // The maximum time in minutes to spend at a pool before it gets blacklisted
