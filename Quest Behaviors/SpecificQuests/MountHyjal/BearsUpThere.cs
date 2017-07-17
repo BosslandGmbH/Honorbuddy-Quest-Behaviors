@@ -156,7 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             // bool canCast = CanCastNow(CLIMB_UP);
             Vector3 lastPos = Me.Location;
             // Lua.DoString("CastSpellByID({0})", CLIMB_UP);
-            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
+            Lua.DoString("CastPetAction(1);");
             await WaitForCurrentSpell();
             await Coroutine.Sleep(2000);
 
@@ -183,7 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                 spellId = CLIMB_DOWN_AT_TOP;
 
             Vector3 lastPos = Me.Location;
-            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
+            Lua.DoString("CastPetAction(2);");
             await WaitForCurrentSpell();
 
             // wait longer if at top due to UI skin change
@@ -288,7 +288,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             QBCLog.DeveloperInfo("(Chuck-A-Bear) threw bear at trampoline");
             // bool canCast = CanCastNow(CHUCK_A_BEAR);
             // Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
-            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
+            Lua.DoString("CastPetAction(4);");
             await WaitForCurrentSpell();
             await Coroutine.Sleep(4000);
         }
