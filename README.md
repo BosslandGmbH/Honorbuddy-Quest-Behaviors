@@ -23,7 +23,7 @@ Since Honorbuddy compiles the quest behaviors by itself there is no need to set 
 a proper build environment. However, this is still beneficial if you are going to
 be making changes to the quest behaviors to make sure your changes still compile.
 
-The repo includes at VS2015 solution which can be opened. To make the project compile
+The repo includes at VS2017 solution which can be opened. To make the project compile
 you must add references to Honorbuddy's `.exe` and `.dll` files. The project is already
 set up to reference the correct assemblies in the `Dependencies` directory, so this
 directory just needs to be created.
@@ -31,11 +31,12 @@ directory just needs to be created.
 The easiest way to do that is with a symbolic link to your Honorbuddy installation. If
 the path `C:\Path\to\Honorbuddy\Honorbuddy.exe` is valid, this is easily done by opening
 a command prompt in the root of quest behaviors (in the same folder as the `.sln` file)
-and running the following command:
+and running the following command (if using PowerShell, you should prefix the following command
+with `cmd /c`):
 ```
 mklink /J Dependencies "C:\Path\to\Honorbuddy"
 ```
-The quest behaviors should now build successfully in VS2015.
+The quest behaviors should now build successfully in VS2017.
 
 ## Contributing
 
