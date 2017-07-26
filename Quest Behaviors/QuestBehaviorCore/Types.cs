@@ -107,6 +107,7 @@ namespace Honorbuddy.QuestBehaviorCore
         Dismount,
         [Obsolete("Use Dismount instead. This will be removed in the future.")]
         DismountOrCancelShapeshift,
+        Land,
         Mount,
         None,
     }

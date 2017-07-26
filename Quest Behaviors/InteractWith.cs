@@ -162,7 +162,12 @@
 //              Dismount
 //                  Unmounts from an explicit mount, or cancels a 'mounted form'.  Examples
 //                  of mounted forms are Druid Flight Forms, Druid Travel Form, Shaman Ghost Wolf,
-//                  and Worgen Running Wild.
+//                  and Worgen Running Wild
+//              Land
+//                  Will make the toon land beside the mob if the toon is currently on a
+//                  flying mount and in the air. This is ideal for situations
+//                  where the interaction object can be interacted with while on a mount,
+//                  but requires you to be on the ground for the interaction to work.
 //              Mount
 //                  Mounts the mount defined in the user's preference settings.
 //              None

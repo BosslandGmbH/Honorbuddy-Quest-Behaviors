@@ -41,20 +41,25 @@ namespace Honorbuddy.QuestBehaviorCore
         public static async Task<bool> ExecuteMountStrategy(MountStrategyType mountStrategy, NavType navType = NavType.Fly)
         {
             if (mountStrategy == MountStrategyType.None)
-            {
                 return false;
-            }
 
 #pragma warning disable 618
             // Dismount needed?
             if (mountStrategy == MountStrategyType.Dismount ||
                 mountStrategy == MountStrategyType.CancelShapeshift ||
-                mountStrategy == MountStrategyType.DismountOrCancelShapeshift)
+                mountStrategy == MountStrategyType.DismountOrCancelShapeshift ||
+                mountStrategy == MountStrategyType.Land)
             {
                 if (!Me.Mounted)
                     return false;
 
-                return await CommonCoroutines.LandAndDismount("Requested by QB");
+                if (mountStrategy != MountStrategyType.Land)
+                    return await CommonCoroutines.LandAndDismount("Requested by QB");
+
+                if (!Me.IsFlying)
+                    return false;
+
+                return await CommonCoroutines.LandAndDismount("Land requested by QB", false);
             }
 #pragma warning restore 618
 
