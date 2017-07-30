@@ -306,7 +306,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                 clickLocation.Z += 3;
                 if (Vehicle.Location.DistanceSquared(clickLocation) > 3 * 3)
                 {
-                    Flightor.MoveTo(clickLocation);
+                    Stopwatch timer = Stopwatch.StartNew();
+                    do
+                    {
+                        Flightor.MoveTo(clickLocation);
+                        await Coroutine.Yield();
+                    } while (timer.ElapsedMilliseconds < 1000 && Vehicle.Location.DistanceSquared(clickLocation) > 3 * 3);
                 }
                 else
                 {
@@ -319,8 +324,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                         return;
                     }
                     QBCLog.Info("Failed to picked up passenger {0}", target.SafeName);
+                    await Coroutine.Yield();
                 }
-                await Coroutine.Yield();
             }
         }
 
