@@ -65,6 +65,7 @@ namespace Honorbuddy.QuestBehaviorCore
             yield return QuestFrame.Instance;
             yield return TaxiFrame.Instance;
             yield return TrainerFrame.Instance;
+            yield return FlightMapFrame.Instance;
         }
 
         public static void CloseAllNpcFrames()
