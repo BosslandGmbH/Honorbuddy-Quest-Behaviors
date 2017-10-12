@@ -71,6 +71,7 @@ using Styx.Helpers;
 using Styx.Plugins;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+using Styx.Common;
 #endregion
 
 
@@ -460,7 +461,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
                 Fps = (int)StyxWoW.WoWClient.Fps;
                 GameClientVersion = StyxWoW.GameVersion;
-                HonorbuddyVersion = Assembly.GetEntryAssembly().GetName().Version;
+                HonorbuddyVersion = Utilities.HonorbuddyAssembly.GetName().Version;
                 IsAutoLootEnabled = Lua.GetReturnVal<bool>("return GetCVar('AutoLootDefault')", 0);
                 IsGameClientWindowedModeEnabled = Lua.GetReturnVal<bool>("return GetCVar('gxWindow')", 0);
                 Latency = (int)StyxWoW.WoWClient.Latency;
