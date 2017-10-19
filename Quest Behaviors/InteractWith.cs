@@ -1090,8 +1090,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                     // We need to wait for the lootframe if object is lootable right now,
                     // otherwise we might miss the loot frame and get stuck infinitely.
-                    if (isLootable && await Coroutine.Wait(2000, () => IsLootFrameVisible))
+                    if (isLootable && await Coroutine.Wait(2000, () => IsLootFrameVisible ||  Me.IsActuallyInCombat))
+                    {
+                      if (Me.IsActuallyInCombat)
+                          return false;
                         await SubCoroutine_HandleFrame_Loot();
+                    }
                 }
 
                 // Peg tally, if follow-up actions not expected...
