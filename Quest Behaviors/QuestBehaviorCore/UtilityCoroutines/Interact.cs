@@ -78,7 +78,8 @@ namespace Honorbuddy.QuestBehaviorCore
                     // NB: --we want the Sequence to fail when delay completes.
                     if (castResult != SpellCastResult.LineOfSight
                         && castResult != SpellCastResult.OutOfRange
-                        && castResult != SpellCastResult.TooClose)
+                        && castResult != SpellCastResult.TooClose
+                        && castResult != SpellCastResult.Interrupted)
                     {
                         await Coroutine.Sleep(1500);
                     }
