@@ -89,7 +89,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
             // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-            return Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+            return Path.Combine(Utilities.AssemblyDirectory,
                                 GlobalSettings.Instance.QuestBehaviorsPath,
                                 "QuestBehaviorCore",
                                 "Data",
