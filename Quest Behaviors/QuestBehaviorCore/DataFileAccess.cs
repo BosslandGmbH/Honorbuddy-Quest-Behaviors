@@ -38,7 +38,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             var occupiedVehicleAuraIds = new List<int>();
 
-            string auraDataFileName = GetDataFileFullPath("AuraIds_OccupiedVehicle.xml");
+            string auraDataFileName = Utility.GetDataFileFullPath("AuraIds_OccupiedVehicle.xml");
 
             if (!File.Exists(auraDataFileName))
             {
