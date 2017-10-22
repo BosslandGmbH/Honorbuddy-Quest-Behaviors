@@ -18,6 +18,7 @@ using System.Xml.Linq;
 
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx.Helpers;
+using Styx.Common;
 #endregion
 
 
@@ -64,7 +65,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30Apr2013-09:09UTC chinajade
         public static SwimBreathType GetSwimBreathInfo()
         {
-            string swimBreathFileName = GetDataFileFullPath("SwimBreath.xml");
+            string swimBreathFileName = Utility.GetDataFileFullPath("SwimBreath.xml");
 
             if (!File.Exists(swimBreathFileName))
             {
@@ -77,18 +78,6 @@ namespace Honorbuddy.QuestBehaviorCore
             XDocument xDoc = XDocument.Load(swimBreathFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
 
             return new SwimBreathType(xDoc.Elements("SwimBreath").FirstOrDefault());
-        }
-
-
-        private static string GetDataFileFullPath(string fileName)
-        {
-            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-            return Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
-                                GlobalSettings.Instance.QuestBehaviorsPath,
-                                "QuestBehaviorCore",
-                                "Data",
-                                fileName);
         }
     }
 }
